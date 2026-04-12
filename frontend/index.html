@@ -1,0 +1,695 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>RunAI - Predicción de Esfuerzo en Corredores</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700;900&family=Roboto:wght@300;400;500&display=swap" rel="stylesheet">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Roboto', sans-serif;
+            background: linear-gradient(135deg, #0a0a0a 0%, #1a1a1a 100%);
+            color: #e0e0e0;
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+
+        header {
+            text-align: center;
+            margin-bottom: 40px;
+            padding: 30px 0;
+            border-bottom: 2px solid #00ff41;
+        }
+
+        h1 {
+            font-family: 'Orbitron', sans-serif;
+            font-size: 3.5em;
+            font-weight: 900;
+            color: #00ff41;
+            text-shadow: 0 0 20px rgba(0, 255, 65, 0.5);
+            margin-bottom: 10px;
+            letter-spacing: 3px;
+        }
+
+        .subtitle {
+            font-size: 1.1em;
+            color: #888;
+            font-weight: 300;
+        }
+
+        .main-content {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 30px;
+            margin-bottom: 30px;
+        }
+
+        .panel {
+            background: rgba(20, 20, 20, 0.8);
+            border: 1px solid #333;
+            border-radius: 15px;
+            padding: 30px;
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.5);
+        }
+
+        .panel h2 {
+            font-family: 'Orbitron', sans-serif;
+            color: #00ff41;
+            margin-bottom: 25px;
+            font-size: 1.8em;
+            border-bottom: 2px solid #00ff41;
+            padding-bottom: 10px;
+        }
+
+        .form-group {
+            margin-bottom: 25px;
+        }
+
+        label {
+            display: block;
+            margin-bottom: 8px;
+            color: #00ff41;
+            font-weight: 500;
+            font-size: 0.95em;
+        }
+
+        .value-display {
+            float: right;
+            color: #fff;
+            font-weight: 700;
+            background: rgba(0, 255, 65, 0.2);
+            padding: 2px 10px;
+            border-radius: 5px;
+        }
+
+        input[type="range"] {
+            width: 100%;
+            height: 8px;
+            border-radius: 5px;
+            background: #333;
+            outline: none;
+            -webkit-appearance: none;
+        }
+
+        input[type="range"]::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            appearance: none;
+            width: 20px;
+            height: 20px;
+            border-radius: 50%;
+            background: #00ff41;
+            cursor: pointer;
+            box-shadow: 0 0 10px rgba(0, 255, 65, 0.8);
+        }
+
+        input[type="range"]::-moz-range-thumb {
+            width: 20px;
+            height: 20px;
+            border-radius: 50%;
+            background: #00ff41;
+            cursor: pointer;
+            box-shadow: 0 0 10px rgba(0, 255, 65, 0.8);
+            border: none;
+        }
+
+        .gender-selector {
+            display: flex;
+            gap: 15px;
+        }
+
+        .gender-option {
+            flex: 1;
+            padding: 12px;
+            background: #222;
+            border: 2px solid #333;
+            border-radius: 8px;
+            cursor: pointer;
+            text-align: center;
+            transition: all 0.3s;
+            font-weight: 500;
+        }
+
+        .gender-option:hover {
+            border-color: #00ff41;
+        }
+
+        .gender-option.active {
+            background: rgba(0, 255, 65, 0.2);
+            border-color: #00ff41;
+            color: #00ff41;
+        }
+
+        .pace-display {
+            background: rgba(0, 255, 65, 0.1);
+            border: 2px solid #00ff41;
+            border-radius: 10px;
+            padding: 15px;
+            text-align: center;
+            margin-bottom: 25px;
+        }
+
+        .pace-display .label {
+            color: #888;
+            font-size: 0.9em;
+            margin-bottom: 5px;
+        }
+
+        .pace-display .value {
+            color: #00ff41;
+            font-size: 2em;
+            font-weight: 700;
+            font-family: 'Orbitron', sans-serif;
+        }
+
+        button {
+            width: 100%;
+            padding: 18px;
+            background: linear-gradient(135deg, #00ff41 0%, #00cc33 100%);
+            color: #000;
+            border: none;
+            border-radius: 10px;
+            font-size: 1.2em;
+            font-weight: 700;
+            font-family: 'Orbitron', sans-serif;
+            cursor: pointer;
+            transition: all 0.3s;
+            text-transform: uppercase;
+            letter-spacing: 2px;
+            box-shadow: 0 5px 20px rgba(0, 255, 65, 0.4);
+        }
+
+        button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 30px rgba(0, 255, 65, 0.6);
+        }
+
+        button:active {
+            transform: translateY(0);
+        }
+
+        button:disabled {
+            background: #333;
+            color: #666;
+            cursor: not-allowed;
+            box-shadow: none;
+        }
+
+        #results {
+            display: none;
+        }
+
+        .results-grid {
+            display: grid;
+            gap: 20px;
+        }
+
+        .gauge-container {
+            text-align: center;
+            margin-bottom: 30px;
+        }
+
+        .gauge {
+            width: 250px;
+            height: 250px;
+            margin: 0 auto 20px;
+            position: relative;
+        }
+
+        .gauge-circle {
+            width: 100%;
+            height: 100%;
+            border-radius: 50%;
+            background: conic-gradient(
+                from 0deg,
+                #00ff41 0deg,
+                #ffff00 90deg,
+                #ff8800 180deg,
+                #ff0000 270deg,
+                #ff0000 360deg
+            );
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            box-shadow: 0 0 30px rgba(0, 255, 65, 0.5);
+        }
+
+        .gauge-inner {
+            width: 85%;
+            height: 85%;
+            background: #1a1a1a;
+            border-radius: 50%;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .gauge-value {
+            font-size: 3em;
+            font-weight: 900;
+            font-family: 'Orbitron', sans-serif;
+            color: #00ff41;
+        }
+
+        .gauge-label {
+            font-size: 0.9em;
+            color: #888;
+            margin-top: 5px;
+        }
+
+        .effort-level {
+            font-size: 1.5em;
+            font-weight: 700;
+            font-family: 'Orbitron', sans-serif;
+            padding: 15px;
+            border-radius: 10px;
+            text-align: center;
+            margin-bottom: 20px;
+            text-transform: uppercase;
+            letter-spacing: 2px;
+        }
+
+        .effort-suave {
+            background: rgba(0, 255, 65, 0.2);
+            color: #00ff41;
+            border: 2px solid #00ff41;
+        }
+
+        .effort-moderado {
+            background: rgba(255, 255, 0, 0.2);
+            color: #ffff00;
+            border: 2px solid #ffff00;
+        }
+
+        .effort-alto {
+            background: rgba(255, 136, 0, 0.2);
+            color: #ff8800;
+            border: 2px solid #ff8800;
+        }
+
+        .effort-maximo {
+            background: rgba(255, 0, 0, 0.2);
+            color: #ff0000;
+            border: 2px solid #ff0000;
+        }
+
+        .recommendation {
+            background: rgba(0, 255, 65, 0.05);
+            border-left: 4px solid #00ff41;
+            padding: 20px;
+            border-radius: 8px;
+            line-height: 1.6;
+            margin-bottom: 20px;
+        }
+
+        .stats-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 15px;
+        }
+
+        .stat-box {
+            background: rgba(0, 255, 65, 0.05);
+            border: 1px solid #333;
+            border-radius: 8px;
+            padding: 15px;
+            text-align: center;
+        }
+
+        .stat-label {
+            color: #888;
+            font-size: 0.85em;
+            margin-bottom: 5px;
+        }
+
+        .stat-value {
+            color: #00ff41;
+            font-size: 1.5em;
+            font-weight: 700;
+            font-family: 'Orbitron', sans-serif;
+        }
+
+        .error {
+            background: rgba(255, 0, 0, 0.2);
+            border: 2px solid #ff0000;
+            color: #ff0000;
+            padding: 20px;
+            border-radius: 10px;
+            margin-top: 20px;
+            text-align: center;
+        }
+
+        .loading {
+            text-align: center;
+            padding: 20px;
+            color: #00ff41;
+            font-size: 1.2em;
+        }
+
+        @media (max-width: 768px) {
+            .main-content {
+                grid-template-columns: 1fr;
+            }
+
+            h1 {
+                font-size: 2.5em;
+            }
+
+            .stats-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        footer {
+            text-align: center;
+            margin-top: 50px;
+            padding: 20px;
+            color: #666;
+            font-size: 0.9em;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>RUN<span style="color: #fff;">AI</span></h1>
+            <p class="subtitle">Predicción de Esfuerzo en Corredores con Machine Learning</p>
+        </header>
+
+        <div class="main-content">
+            <!-- Panel de entrada -->
+            <div class="panel">
+                <h2>Datos del Entrenamiento</h2>
+                
+                <div class="pace-display">
+                    <div class="label">Pace Calculado</div>
+                    <div class="value" id="paceDisplay">5:43 min/km</div>
+                </div>
+
+                <form id="predictionForm">
+                    <div class="form-group">
+                        <label>
+                            Velocidad Media (km/h)
+                            <span class="value-display" id="speedMeanValue">10.5</span>
+                        </label>
+                        <input type="range" id="speedMean" min="5" max="25" step="0.1" value="10.5">
+                    </div>
+
+                    <div class="form-group">
+                        <label>
+                            Velocidad Máxima (km/h)
+                            <span class="value-display" id="speedMaxValue">14.0</span>
+                        </label>
+                        <input type="range" id="speedMax" min="5" max="30" step="0.1" value="14.0">
+                    </div>
+
+                    <div class="form-group">
+                        <label>
+                            Desviación Velocidad
+                            <span class="value-display" id="speedStdValue">1.5</span>
+                        </label>
+                        <input type="range" id="speedStd" min="0" max="5" step="0.1" value="1.5">
+                    </div>
+
+                    <div class="form-group">
+                        <label>
+                            Altitud Media (m)
+                            <span class="value-display" id="altitudeMeanValue">100</span>
+                        </label>
+                        <input type="range" id="altitudeMean" min="0" max="3000" step="10" value="100">
+                    </div>
+
+                    <div class="form-group">
+                        <label>
+                            Ganancia Altitud (m)
+                            <span class="value-display" id="altitudeGainValue">50</span>
+                        </label>
+                        <input type="range" id="altitudeGain" min="0" max="1000" step="5" value="50">
+                    </div>
+
+                    <div class="form-group">
+                        <label>
+                            FC Mínima (bpm)
+                            <span class="value-display" id="hrMinValue">110</span>
+                        </label>
+                        <input type="range" id="hrMin" min="60" max="180" step="1" value="110">
+                    </div>
+
+                    <div class="form-group">
+                        <label>
+                            FC Máxima (bpm)
+                            <span class="value-display" id="hrMaxValue">170</span>
+                        </label>
+                        <input type="range" id="hrMax" min="80" max="220" step="1" value="170">
+                    </div>
+
+                    <div class="form-group">
+                        <label>
+                            Desviación FC
+                            <span class="value-display" id="hrStdValue">12.0</span>
+                        </label>
+                        <input type="range" id="hrStd" min="0" max="30" step="0.5" value="12.0">
+                    </div>
+
+                    <div class="form-group">
+                        <label>
+                            Duración (min)
+                            <span class="value-display" id="durationValue">55</span>
+                        </label>
+                        <input type="range" id="duration" min="5" max="300" step="1" value="55">
+                    </div>
+
+                    <div class="form-group">
+                        <label>
+                            Distancia (km)
+                            <span class="value-display" id="distanceValue">10.0</span>
+                        </label>
+                        <input type="range" id="distance" min="1" max="50" step="0.1" value="10.0">
+                    </div>
+
+                    <div class="form-group">
+                        <label>Género</label>
+                        <div class="gender-selector">
+                            <div class="gender-option active" data-gender="male">👨 Masculino</div>
+                            <div class="gender-option" data-gender="female">👩 Femenino</div>
+                        </div>
+                    </div>
+
+                    <button type="submit">Predecir Esfuerzo</button>
+                </form>
+            </div>
+
+            <!-- Panel de resultados -->
+            <div class="panel" id="results">
+                <h2>Resultados de la Predicción</h2>
+                
+                <div class="gauge-container">
+                    <div class="gauge">
+                        <div class="gauge-circle" id="gaugeCircle">
+                            <div class="gauge-inner">
+                                <div class="gauge-value" id="hrValue">158</div>
+                                <div class="gauge-label">bpm</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="effort-level" id="effortLevel">
+                    Esfuerzo Alto
+                </div>
+
+                <div class="recommendation" id="recommendation">
+                    Cargando recomendación...
+                </div>
+
+                <div class="stats-grid">
+                    <div class="stat-box">
+                        <div class="stat-label">Pace Medio</div>
+                        <div class="stat-value" id="paceResult">5:43</div>
+                    </div>
+                    <div class="stat-box">
+                        <div class="stat-label">Modelo</div>
+                        <div class="stat-value" style="font-size: 1em;">XGBoost</div>
+                    </div>
+                    <div class="stat-box">
+                        <div class="stat-label">R² Score</div>
+                        <div class="stat-value">0.890</div>
+                    </div>
+                    <div class="stat-box">
+                        <div class="stat-label">MAE</div>
+                        <div class="stat-value">2.96</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <footer>
+            <p>TFM Máster en IA - Predicción de Esfuerzo en Corredores</p>
+            <p>Dataset: FitRec/Endomondo (~20M actividades) | Modelo: XGBoost</p>
+        </footer>
+    </div>
+
+    <script>
+        // Configuración de la API
+        const API_URL = 'https://runai-api-1059009495382.europe-southwest1.run.app/predict';
+        
+        // Estado de la aplicación
+        let selectedGender = 'male';
+
+        // Elementos del DOM
+        const form = document.getElementById('predictionForm');
+        const resultsPanel = document.getElementById('results');
+        const paceDisplay = document.getElementById('paceDisplay');
+
+        // Sliders
+        const sliders = {
+            speedMean: document.getElementById('speedMean'),
+            speedMax: document.getElementById('speedMax'),
+            speedStd: document.getElementById('speedStd'),
+            altitudeMean: document.getElementById('altitudeMean'),
+            altitudeGain: document.getElementById('altitudeGain'),
+            hrMin: document.getElementById('hrMin'),
+            hrMax: document.getElementById('hrMax'),
+            hrStd: document.getElementById('hrStd'),
+            duration: document.getElementById('duration'),
+            distance: document.getElementById('distance')
+        };
+
+        // Actualizar valores de los sliders
+        Object.keys(sliders).forEach(key => {
+            const slider = sliders[key];
+            const valueDisplay = document.getElementById(key + 'Value');
+            
+            slider.addEventListener('input', (e) => {
+                valueDisplay.textContent = e.target.value;
+                
+                // Actualizar pace en tiempo real
+                if (key === 'speedMean') {
+                    updatePaceDisplay(parseFloat(e.target.value));
+                }
+            });
+        });
+
+        // Selector de género
+        document.querySelectorAll('.gender-option').forEach(option => {
+            option.addEventListener('click', (e) => {
+                document.querySelectorAll('.gender-option').forEach(opt => 
+                    opt.classList.remove('active')
+                );
+                e.target.classList.add('active');
+                selectedGender = e.target.dataset.gender;
+            });
+        });
+
+        // Calcular y mostrar pace
+        function updatePaceDisplay(speedKmh) {
+            if (speedKmh <= 0) {
+                paceDisplay.textContent = '--:--';
+                return;
+            }
+            const paceMinKm = 60 / speedKmh;
+            const minutes = Math.floor(paceMinKm);
+            const seconds = Math.round((paceMinKm - minutes) * 60);
+            paceDisplay.textContent = `${minutes}:${seconds.toString().padStart(2, '0')} min/km`;
+        }
+
+        // Inicializar pace
+        updatePaceDisplay(10.5);
+
+        // Enviar formulario
+        form.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            
+            const submitButton = form.querySelector('button');
+            submitButton.disabled = true;
+            submitButton.textContent = 'Prediciendo...';
+
+            // Preparar datos
+            const data = {
+                speed_mean: parseFloat(sliders.speedMean.value),
+                speed_max: parseFloat(sliders.speedMax.value),
+                speed_std: parseFloat(sliders.speedStd.value),
+                altitude_mean: parseFloat(sliders.altitudeMean.value),
+                altitude_gain: parseFloat(sliders.altitudeGain.value),
+                heart_rate_min: parseInt(sliders.hrMin.value),
+                heart_rate_max: parseInt(sliders.hrMax.value),
+                heart_rate_std: parseFloat(sliders.hrStd.value),
+                duration_min: parseFloat(sliders.duration.value),
+                distance_km: parseFloat(sliders.distance.value),
+                gender: selectedGender
+            };
+
+            try {
+                const response = await fetch(API_URL, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify(data)
+                });
+
+                if (!response.ok) {
+                    throw new Error(`Error ${response.status}: ${response.statusText}`);
+                }
+
+                const result = await response.json();
+                displayResults(result);
+                
+            } catch (error) {
+                console.error('Error:', error);
+                alert('Error al realizar la predicción. Verifica que la API esté desplegada y la URL sea correcta.\n\n' + error.message);
+            } finally {
+                submitButton.disabled = false;
+                submitButton.textContent = 'Predecir Esfuerzo';
+            }
+        });
+
+        // Mostrar resultados
+        function displayResults(result) {
+            // Mostrar panel de resultados
+            resultsPanel.style.display = 'block';
+            resultsPanel.scrollIntoView({ behavior: 'smooth' });
+
+            // Actualizar FC predicha
+            document.getElementById('hrValue').textContent = Math.round(result.hr_predicha);
+
+            // Actualizar nivel de esfuerzo
+            const effortLevel = document.getElementById('effortLevel');
+            effortLevel.textContent = `Esfuerzo ${result.nivel_esfuerzo.charAt(0).toUpperCase() + result.nivel_esfuerzo.slice(1)}`;
+            effortLevel.className = 'effort-level effort-' + result.nivel_esfuerzo;
+
+            // Actualizar gauge color
+            const gaugeCircle = document.getElementById('gaugeCircle');
+            const colors = {
+                'suave': 'linear-gradient(135deg, #00ff41 0%, #00cc33 100%)',
+                'moderado': 'linear-gradient(135deg, #ffff00 0%, #cccc00 100%)',
+                'alto': 'linear-gradient(135deg, #ff8800 0%, #cc6600 100%)',
+                'maximo': 'linear-gradient(135deg, #ff0000 0%, #cc0000 100%)'
+            };
+            gaugeCircle.style.background = colors[result.nivel_esfuerzo] || colors.alto;
+
+            // Actualizar recomendación
+            document.getElementById('recommendation').textContent = result.recomendacion;
+
+            // Actualizar pace
+            const paceMinKm = result.pace_min_km;
+            const minutes = Math.floor(paceMinKm);
+            const seconds = Math.round((paceMinKm - minutes) * 60);
+            document.getElementById('paceResult').textContent = `${minutes}:${seconds.toString().padStart(2, '0')}`;
+        }
+    </script>
+</body>
+</html>
