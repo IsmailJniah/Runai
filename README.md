@@ -1,244 +1,153 @@
-# RunAI - Predicción de Esfuerzo en Corredores
+# RunnAing: Predicción de fatiga acumulada en corredores populares mediante ML
 
-TFM Máster en IA - Sistema de predicción de frecuencia cardíaca media en entrenamientos de running utilizando Machine Learning.
+**TFM — Máster en IA, UNIR | Tipo 1 Piloto Experimental**
+Dataset: FitRec (Ni et al., 2019) | Variable objetivo: TRIMP de Banister (1991)
 
-## 📊 Información del Modelo
+---
 
-- **Algoritmo**: XGBoost
-- **Tarea**: Predecir FC media (bpm) de un entrenamiento
-- **Métricas de rendimiento**:
-  - R² Score: 0.890
-  - MAE: 2.96 bpm
-- **Dataset**: FitRec/Endomondo (~20M actividades)
-- **Features utilizadas**:
-  - speed_mean, speed_max, speed_std
-  - altitude_mean, altitude_gain
-  - heart_rate_min, heart_rate_max, heart_rate_std
-  - duration_min, distance_km
-  - gender
-
-## 🏗️ Estructura del Proyecto
+## Estructura del proyecto
 
 ```
-Runai/
-├── api/
-│   ├── api.py              # FastAPI application
-│   ├── requirements.txt    # Python dependencies
-│   └── Dockerfile         # Container configuration
-├── frontend/
-│   └── index.html         # Web application (standalone)
-├── models/
-│   └── modelo_xgboost.pkl # Trained XGBoost model (opcional)
+/
+├── notebooks/
+│   ├── 01_eda.ipynb                  # EDA + span temporal por usuario
+│   ├── 02_preprocessing.ipynb        # Limpieza + cálculo de TRIMP objetivo
+│   ├── 03_feature_engineering.ipynb  # 9 features externas (sin FC)
+│   ├── 04_modeling.ipynb             # Entrenamiento + Optuna + GroupKFold
+│   ├── 05_evaluation.ipynb           # Métricas + Wilcoxon-Bonferroni + Tabla 4.3
+│   ├── 06_shap_interpretability.ipynb# Figura 4.1 (beeswarm SHAP)
+│   └── 07_acwr_analysis.ipynb        # Cohorte apta + zonas Gabbett + Tabla 4.4
+├── src/
+│   ├── data_loader.py                # Carga JSONL/CSV del dataset FitRec
+│   ├── trimp.py                      # Fórmula Banister (b=1.92/1.67 por sexo)
+│   ├── features.py                   # 9 features + guard assert anti-FC
+│   ├── splits.py                     # GroupKFold por user_id
+│   ├── models.py                     # 5 modelos parametrizables
+│   ├── tuning.py                     # Optuna 50 trials por modelo
+│   ├── evaluation.py                 # MAE/RMSE/R2/MAPE/Pearson + Wilcoxon-Bonferroni
+│   ├── shap_utils.py                 # TreeExplainer + plots
+│   └── acwr.py                       # acute7/chronic28 + zonas Gabbett
+├── outputs/
+│   ├── tables/                       # CSVs con Tablas 4.1, 4.3, 4.4
+│   ├── figures/                      # Figura 4.1 (beeswarm SHAP)
+│   └── models/                       # best_model.pkl
+├── tests/
+│   ├── test_no_hr_in_features.py     # Assert: FC no entra en X
+│   ├── test_groupkfold_no_leakage.py # Assert: sin leakage entre usuarios
+│   ├── test_trimp_formula.py         # Casos conocidos de Banister
+│   └── test_acwr.py                  # Cohorte y zonas Gabbett
+├── requirements.txt
 └── README.md
 ```
 
-## 🚀 Despliegue en Google Cloud Run
+---
 
-### Prerrequisitos
+## Dataset: FitRec (Ni et al., 2019)
 
-1. Tener instalado Google Cloud SDK
-2. Autenticarse en GCP:
-```bash
-gcloud auth login
-```
+**Version exacta usada:** FitRec v1.0 — publicada por el MIT Media Lab en 2019.
 
-3. Configurar el proyecto:
-```bash
-gcloud config set project aesthetic-style-493015-k1
-```
+**Cita:**
+> Ni, J., Muhlstein, L., & McAuley, J. (2019). Modeling heart rate and
+> activity data for personalizing running pace. In *Proceedings of The Web
+> Conference 2019* (WWW '19), pp. 1343-1353. ACM.
 
-### Paso 1: Build y Deploy de la API
+**Descarga:**
+1. Accede a: https://sites.google.com/eng.ucsd.edu/fitrec-project/home
+2. Descarga `FitRec.tar.gz` (~4 GB comprimido, ~12 GB descomprimido)
+3. Descomprime y coloca el archivo principal en:
+   ```
+   data/raw/fitrec.jsonl   (o fitrec.json)
+   ```
+4. Crea el directorio si no existe:
+   ```bash
+   mkdir -p data/raw
+   ```
 
-Desde el directorio raíz del proyecto (`Runai/`), ejecuta:
+**Formato:** JSONL (una sesion por linea). Campos relevantes:
+- `userId`: identificador del usuario
+- `sport`: tipo de deporte (`run`, `bike`, etc.)
+- `gender`: `male` / `female`
+- `heart_rate`: lista de FC por timestep (solo para construir TRIMP, NO para features)
+- `timestamp`: lista de epoch-segundos
+- `latitude`, `longitude`, `altitude`: series GPS
 
-```bash
-cd api
-gcloud builds submit --tag gcr.io/aesthetic-style-493015-k1/runai-api
-```
+**Estadisticas del dataset original:**
+- ~253.020 sesiones de running
+- 1.104 usuarios unicos
+- Periodo: 2014-2017
 
-Luego despliega en Cloud Run:
+---
 
-```bash
-gcloud run deploy runai-api ^
-  --image gcr.io/aesthetic-style-493015-k1/runai-api ^
-  --platform managed ^
-  --region europe-southwest1 ^
-  --port 8080 ^
-  --allow-unauthenticated ^
-  --memory 1Gi ^
-  --cpu 1 ^
-  --max-instances 10
-```
-
-**Nota para Linux/Mac**: Reemplaza `^` por `\` para continuar líneas.
-
-### Paso 2: Obtener la URL del servicio
-
-Después del deploy, Cloud Run te proporcionará una URL como:
-```
-https://runai-api-XXXXXXXXXX.europe-southwest1.run.app
-```
-
-### Paso 3: Actualizar el Frontend
-
-Edita `frontend/index.html` y actualiza la constante `API_URL` (línea ~450):
-
-```javascript
-const API_URL = 'https://runai-api-XXXXXXXXXX.europe-southwest1.run.app/predict';
-```
-
-Reemplaza `XXXXXXXXXX` con tu URL real de Cloud Run.
-
-### Paso 4: Probar la API
-
-Verifica que la API esté funcionando:
+## Instalacion
 
 ```bash
-curl https://runai-api-XXXXXXXXXX.europe-southwest1.run.app/health
-```
-
-Deberías recibir:
-```json
-{
-  "status": "healthy",
-  "model": "not_loaded",
-  "service": "runai-api"
-}
-```
-
-## 🧪 Probar la Predicción
-
-### Desde la línea de comandos:
-
-```bash
-curl -X POST https://runai-api-XXXXXXXXXX.europe-southwest1.run.app/predict ^
-  -H "Content-Type: application/json" ^
-  -d "{\"speed_mean\":10.5,\"speed_max\":14.0,\"speed_std\":1.5,\"altitude_mean\":100.0,\"altitude_gain\":50.0,\"heart_rate_min\":110,\"heart_rate_max\":170,\"heart_rate_std\":12.0,\"duration_min\":55.0,\"distance_km\":10.0,\"gender\":\"male\"}"
-```
-
-### Desde el navegador:
-
-Abre `frontend/index.html` directamente en tu navegador (doble clic en el archivo).
-
-## 📝 Endpoints de la API
-
-### GET /
-Información general de la API
-
-### GET /health
-Estado del servicio (health check)
-
-### POST /predict
-Realiza una predicción de FC media
-
-**Request body**:
-```json
-{
-  "speed_mean": 10.5,
-  "speed_max": 14.0,
-  "speed_std": 1.5,
-  "altitude_mean": 100.0,
-  "altitude_gain": 50.0,
-  "heart_rate_min": 110,
-  "heart_rate_max": 170,
-  "heart_rate_std": 12.0,
-  "duration_min": 55.0,
-  "distance_km": 10.0,
-  "gender": "male"
-}
-```
-
-**Response**:
-```json
-{
-  "hr_predicha": 158.4,
-  "nivel_esfuerzo": "alto",
-  "recomendacion": "Entrenamiento intenso. FC predicha: 158.4 bpm...",
-  "pace_min_km": 5.71
-}
-```
-
-## 🎯 Niveles de Esfuerzo
-
-- **Suave** (< 130 bpm): Recuperación y base aeróbica
-- **Moderado** (130-144 bpm): Zona aeróbica óptima
-- **Alto** (145-159 bpm): Umbral anaeróbico
-- **Máximo** (≥ 160 bpm): Alta intensidad
-
-## 🔄 Actualizar el Servicio
-
-Para actualizar la API después de hacer cambios:
-
-```bash
-cd api
-gcloud builds submit --tag gcr.io/aesthetic-style-493015-k1/runai-api
-gcloud run deploy runai-api --image gcr.io/aesthetic-style-493015-k1/runai-api --region europe-southwest1
-```
-
-## 📦 Incluir el Modelo Entrenado (Opcional)
-
-Si tienes el archivo `modelo_xgboost.pkl`:
-
-1. Crea la carpeta `models/` en la raíz del proyecto
-2. Coloca el archivo `modelo_xgboost.pkl` dentro
-3. Modifica el `Dockerfile` para copiar el modelo:
-
-```dockerfile
-# Añadir después de COPY api.py .
-COPY ../models/modelo_xgboost.pkl /app/models/
-```
-
-4. Vuelve a hacer el build y deploy
-
-## 🛠️ Desarrollo Local
-
-### Ejecutar la API localmente:
-
-```bash
-cd api
+# Python 3.11 requerido
+python -m venv .venv
+source .venv/bin/activate          # Windows: .venv\Scripts\activate
 pip install -r requirements.txt
-python api.py
 ```
 
-La API estará disponible en `http://localhost:8080`
+---
 
-### Documentación interactiva:
+## Reproduccion end-to-end
 
-Una vez ejecutando, visita:
-- Swagger UI: `http://localhost:8080/docs`
-- ReDoc: `http://localhost:8080/redoc`
+Ejecuta los notebooks en orden (requiere el dataset en `data/raw/`):
 
-## 📊 Configuración de GCP
-
-- **Project ID**: aesthetic-style-493015-k1
-- **Region**: europe-southwest1
-- **Service name**: runai-api
-- **Puerto**: 8080
-
-## 🐛 Troubleshooting
-
-### Error: "Permission denied"
 ```bash
-gcloud auth login
-gcloud config set project aesthetic-style-493015-k1
+# 1. Activar entorno
+source .venv/bin/activate
+
+# 2. Ejecutar tests antes de comenzar
+pytest tests/ -v
+
+# 3. Ejecutar notebooks en orden
+jupyter nbconvert --to notebook --execute notebooks/01_eda.ipynb
+jupyter nbconvert --to notebook --execute notebooks/02_preprocessing.ipynb
+jupyter nbconvert --to notebook --execute notebooks/03_feature_engineering.ipynb
+jupyter nbconvert --to notebook --execute notebooks/04_modeling.ipynb
+jupyter nbconvert --to notebook --execute notebooks/05_evaluation.ipynb
+jupyter nbconvert --to notebook --execute notebooks/06_shap_interpretability.ipynb
+jupyter nbconvert --to notebook --execute notebooks/07_acwr_analysis.ipynb
+
+# 4. Outputs generados en:
+#    outputs/tables/tabla_4_1_funnel.csv
+#    outputs/tables/tabla_4_3_modelos.csv
+#    outputs/tables/tabla_4_4_acwr_cohorte.csv
+#    outputs/figures/figura_4_1_shap_beeswarm.png
+#    outputs/models/best_model.pkl
 ```
 
-### Error: "API not enabled"
-Habilita las APIs necesarias:
+---
+
+## Reglas de reproducibilidad
+
+| Regla | Valor |
+|-------|-------|
+| `random_state` global | 42 |
+| Split | GroupKFold (k=5) por `userId` |
+| Optuna trials | 50 por modelo |
+| Optuna sampler | TPE con `seed=42` |
+| FC en features X | PROHIBIDO -- assert lanza si se detecta |
+| Modelos | LinearRegression, RF, GradientBoosting, XGBoost, LightGBM |
+
+---
+
+## Tests
+
 ```bash
-gcloud services enable cloudbuild.googleapis.com
-gcloud services enable run.googleapis.com
+pytest tests/ -v
 ```
 
-### Ver logs del servicio:
-```bash
-gcloud run services logs read runai-api --region europe-southwest1
-```
+Los tests verifican:
+- Que FC no aparece en la matriz X (`test_no_hr_in_features.py`)
+- Que no hay data leakage por usuario (`test_groupkfold_no_leakage.py`)
+- Casos conocidos de la formula de Banister (`test_trimp_formula.py`)
+- Cohorte y zonas Gabbett (`test_acwr.py`)
 
-## 📄 Licencia
+---
 
-Proyecto académico - TFM Máster en IA
+## Limitaciones conocidas
 
-## 👤 Autor
-
-Desarrollado como parte del Trabajo Fin de Máster en Inteligencia Artificial
+- Sin el dataset FitRec descargado, los notebooks 01-07 no se pueden ejecutar.
+- Los valores en `INFORME_EJECUCION.md` seran [PENDIENTE] hasta ejecutar el pipeline completo.
+- FitRec no incluye FC de reposo ni FC maxima por usuario; se usan valores poblacionales (rest=60, max=185).

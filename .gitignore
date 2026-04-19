@@ -1,0 +1,31 @@
+# Entornos virtuales
+.venv/
+venv/
+env/
+
+# Archivos cacheados de Python
+__pycache__/
+*.py[cod]
+*$py.class
+
+# Notebooks
+.ipynb_checkpoints/
+
+# Datos (¡CRÍTICO! GitHub no acepta archivos gigantes)
+data/raw/
+data/processed/
+*.csv
+*.json
+*.jsonl
+*.tar.gz
+
+# Modelos pesados (Opcional, pero recomendado no subir los .pkl grandes)
+outputs/models/*.pkl
+models/*.pkl
+
+# Logs de GCP
+.gcp/
+.gcloud/
+
+# OS
+.DS_Store
