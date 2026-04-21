@@ -12,6 +12,7 @@ Descarga: https://sites.google.com/eng.ucsd.edu/fitrec-project/home
 
 from __future__ import annotations
 
+import ast
 import json
 import logging
 from pathlib import Path
@@ -64,8 +65,11 @@ def load_fitrec_jsonl(path: str | Path, max_rows: Optional[int] = None) -> pd.Da
                 continue
             try:
                 records.append(json.loads(line))
-            except json.JSONDecodeError as exc:
-                logger.warning("Línea %d malformada, se omite: %s", i, exc)
+            except json.JSONDecodeError:
+                try:
+                    records.append(ast.literal_eval(line))
+                except Exception as exc:
+                    logger.warning("Línea %d malformada, se omite: %s", i, exc)
 
     df = pd.DataFrame(records)
     logger.info("Cargadas %d sesiones desde %s", len(df), path)
