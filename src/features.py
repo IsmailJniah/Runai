@@ -56,7 +56,7 @@ FEATURE_NAMES_HR: list[str] = [
     "hrv_estimate",
 ]
 
-FEATURE_NAMES: list[str] = FEATURE_NAMES_GPS + FEATURE_NAMES_HR
+FEATURE_NAMES: list[str] = FEATURE_NAMES_GPS
 
 
 # ---------------------------------------------------------------------------
@@ -232,15 +232,16 @@ def _haversine_consecutive(lat: np.ndarray, lon: np.ndarray) -> np.ndarray:
     return R * 2 * np.arcsin(np.sqrt(np.clip(a, 0, 1)))
 
 
-# Mantener alias para retrocompatibilidad con tests existentes
+_HR_TERMS = ["hr", "heart_rate", "fc", "trimp", "hrv"]
+
+
 def assert_no_hr_leakage(X: pd.DataFrame) -> None:
-    """
-    Guardia legacy. Con el diseño actual HR se incluye intencionalmente.
-    Falla solo si 'trimp' (el target) aparece en X.
-    """
-    leaking_cols = [col for col in X.columns if "trimp" in col.lower()]
+    leaking_cols = [
+        col for col in X.columns
+        if any(term in col.lower() for term in _HR_TERMS)
+    ]
     assert not leaking_cols, (
-        f"ERROR — columna target 'trimp' detectada en X: {leaking_cols}"
+        f"BUG CRÍTICO — columnas con HR/FC/target detectadas en X: {leaking_cols}"
     )
 
 

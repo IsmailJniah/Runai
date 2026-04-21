@@ -6,7 +6,8 @@
     <title>RunAI - Predicción de Esfuerzo en Corredores</title>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700;900&family=Roboto:wght@300;400;500&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@700&display=swap" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <style>
         * {
             margin: 0;
@@ -15,93 +16,94 @@
         }
 
         body {
-            font-family: 'Roboto', sans-serif;
-            background: linear-gradient(135deg, #0a0a0a 0%, #1a1a1a 100%);
-            color: #e0e0e0;
+            font-family: -apple-system, "SF Pro Display", "Helvetica Neue", sans-serif;
+            background: #ffffff;
+            color: #1d1d1f;
             min-height: 100vh;
-            padding: 20px;
+            padding: 0 20px 80px;
+            font-size: 17px;
+            line-height: 1.6;
         }
 
         .container {
-            max-width: 1200px;
+            max-width: 800px;
             margin: 0 auto;
         }
 
         header {
             text-align: center;
-            margin-bottom: 40px;
-            padding: 30px 0;
-            border-bottom: 2px solid #00ff41;
+            padding: 64px 0 48px;
         }
 
         h1 {
-            font-family: 'Orbitron', sans-serif;
-            font-size: 3.5em;
-            font-weight: 900;
-            color: #00ff41;
-            text-shadow: 0 0 20px rgba(0, 255, 65, 0.5);
+            font-size: 48px;
+            font-weight: 700;
+            letter-spacing: -0.5px;
+            color: #1d1d1f;
             margin-bottom: 10px;
-            letter-spacing: 3px;
         }
 
         .subtitle {
-            font-size: 1.1em;
-            color: #888;
-            font-weight: 300;
+            font-size: 19px;
+            color: #6e6e73;
+            font-weight: 400;
         }
 
         .main-content {
             display: grid;
             grid-template-columns: 1fr 1fr;
-            gap: 30px;
-            margin-bottom: 30px;
+            gap: 16px;
+            margin-bottom: 16px;
         }
 
         .panel {
-            background: rgba(20, 20, 20, 0.8);
-            border: 1px solid #333;
-            border-radius: 15px;
-            padding: 30px;
-            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.5);
+            background: #f5f5f7;
+            border-radius: 18px;
+            padding: 28px;
+            box-shadow: 0 2px 12px rgba(0, 0, 0, 0.06);
         }
 
         .panel h2 {
-            font-family: 'Orbitron', sans-serif;
-            color: #00ff41;
-            margin-bottom: 25px;
-            font-size: 1.8em;
-            border-bottom: 2px solid #00ff41;
-            padding-bottom: 10px;
+            font-size: 17px;
+            font-weight: 600;
+            color: #1d1d1f;
+            letter-spacing: -0.2px;
+            margin-bottom: 20px;
         }
 
         .form-group {
-            margin-bottom: 25px;
+            margin-bottom: 20px;
+        }
+
+        .label-row {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 8px;
         }
 
         label {
-            display: block;
-            margin-bottom: 8px;
-            color: #00ff41;
+            color: #1d1d1f;
+            font-size: 14px;
             font-weight: 500;
-            font-size: 0.95em;
         }
 
         .value-display {
-            float: right;
-            color: #fff;
-            font-weight: 700;
-            background: rgba(0, 255, 65, 0.2);
-            padding: 2px 10px;
-            border-radius: 5px;
+            color: #6e6e73;
+            font-size: 13px;
+            font-weight: 400;
         }
 
+        /* Sliders */
         input[type="range"] {
             width: 100%;
-            height: 8px;
-            border-radius: 5px;
-            background: #333;
+            height: 4px;
+            border-radius: 2px;
+            background: #d2d2d7;
             outline: none;
             -webkit-appearance: none;
+            appearance: none;
+            cursor: pointer;
         }
 
         input[type="range"]::-webkit-slider-thumb {
@@ -110,121 +112,202 @@
             width: 20px;
             height: 20px;
             border-radius: 50%;
-            background: #00ff41;
+            background: #ffffff;
             cursor: pointer;
-            box-shadow: 0 0 10px rgba(0, 255, 65, 0.8);
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
         }
 
         input[type="range"]::-moz-range-thumb {
             width: 20px;
             height: 20px;
             border-radius: 50%;
-            background: #00ff41;
+            background: #ffffff;
             cursor: pointer;
-            box-shadow: 0 0 10px rgba(0, 255, 65, 0.8);
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
             border: none;
         }
 
+        /* Gender selector */
         .gender-selector {
             display: flex;
-            gap: 15px;
+            gap: 6px;
+            background: #e8e8ed;
+            border-radius: 10px;
+            padding: 4px;
+            margin-top: 8px;
         }
 
         .gender-option {
             flex: 1;
-            padding: 12px;
-            background: #222;
-            border: 2px solid #333;
-            border-radius: 8px;
+            padding: 8px 12px;
+            border-radius: 7px;
             cursor: pointer;
             text-align: center;
-            transition: all 0.3s;
+            transition: all 0.2s ease;
+            font-size: 14px;
             font-weight: 500;
+            color: #6e6e73;
+            user-select: none;
         }
 
         .gender-option:hover {
-            border-color: #00ff41;
+            color: #1d1d1f;
         }
 
         .gender-option.active {
-            background: rgba(0, 255, 65, 0.2);
-            border-color: #00ff41;
-            color: #00ff41;
+            background: #0071e3;
+            color: #ffffff;
         }
 
+        /* Pace display */
         .pace-display {
-            background: rgba(0, 255, 65, 0.1);
-            border: 2px solid #00ff41;
-            border-radius: 10px;
-            padding: 15px;
-            text-align: center;
-            margin-bottom: 25px;
+            background: #ffffff;
+            border-radius: 12px;
+            padding: 14px 18px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-bottom: 20px;
         }
 
         .pace-display .label {
-            color: #888;
-            font-size: 0.9em;
-            margin-bottom: 5px;
+            color: #6e6e73;
+            font-size: 14px;
+            font-weight: 400;
         }
 
         .pace-display .value {
-            color: #00ff41;
-            font-size: 2em;
-            font-weight: 700;
-            font-family: 'Orbitron', sans-serif;
+            color: #0071e3;
+            font-size: 15px;
+            font-weight: 600;
         }
 
-        button {
+        /* Import button */
+        .import-button {
             width: 100%;
-            padding: 18px;
-            background: linear-gradient(135deg, #00ff41 0%, #00cc33 100%);
-            color: #000;
-            border: none;
+            padding: 12px 16px;
+            background: #ffffff;
+            color: #0071e3;
+            border: 1px solid #d2d2d7;
             border-radius: 10px;
-            font-size: 1.2em;
-            font-weight: 700;
-            font-family: 'Orbitron', sans-serif;
+            font-size: 14px;
+            font-weight: 500;
+            font-family: -apple-system, "SF Pro Display", "Helvetica Neue", sans-serif;
             cursor: pointer;
-            transition: all 0.3s;
-            text-transform: uppercase;
-            letter-spacing: 2px;
-            box-shadow: 0 5px 20px rgba(0, 255, 65, 0.4);
+            transition: background 0.2s ease;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+            margin-bottom: 20px;
+            letter-spacing: 0;
+            text-transform: none;
         }
 
-        button:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 8px 30px rgba(0, 255, 65, 0.6);
+        .import-button:hover {
+            background: #f0f0f5;
         }
 
-        button:active {
-            transform: translateY(0);
+        /* Submit button */
+        button[type="submit"] {
+            width: 100%;
+            padding: 16px 32px;
+            background: #0071e3;
+            color: #ffffff;
+            border: none;
+            border-radius: 12px;
+            font-size: 17px;
+            font-weight: 600;
+            font-family: -apple-system, "SF Pro Display", "Helvetica Neue", sans-serif;
+            cursor: pointer;
+            transition: background 0.2s ease;
+            margin-top: 8px;
+            letter-spacing: 0;
+            text-transform: none;
         }
 
-        button:disabled {
-            background: #333;
-            color: #666;
+        button[type="submit"]:hover {
+            background: #0077ed;
+        }
+
+        button[type="submit"]:active {
+            background: #006acc;
+        }
+
+        button[type="submit"]:disabled {
+            background: #d2d2d7;
+            color: #6e6e73;
             cursor: not-allowed;
-            box-shadow: none;
         }
 
+        /* Toast */
+        .toast {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            padding: 14px 20px;
+            border-radius: 12px;
+            font-weight: 500;
+            font-size: 14px;
+            z-index: 1000;
+            animation: slideIn 0.3s ease-out;
+            max-width: 380px;
+            box-shadow: 0 2px 12px rgba(0, 0, 0, 0.12);
+            line-height: 1.4;
+        }
+
+        .toast.success {
+            background: #1d1d1f;
+            color: #ffffff;
+        }
+
+        .toast.error {
+            background: #ff3b30;
+            color: #ffffff;
+        }
+
+        @keyframes slideIn {
+            from {
+                transform: translateX(400px);
+                opacity: 0;
+            }
+            to {
+                transform: translateX(0);
+                opacity: 1;
+            }
+        }
+
+        @keyframes slideOut {
+            from {
+                transform: translateX(0);
+                opacity: 1;
+            }
+            to {
+                transform: translateX(400px);
+                opacity: 0;
+            }
+        }
+
+        /* Results panel */
         #results {
             display: none;
         }
 
         .results-grid {
             display: grid;
-            gap: 20px;
+            gap: 12px;
         }
 
+        /* Gauge — colored ring set dynamically by JS */
         .gauge-container {
             text-align: center;
-            margin-bottom: 30px;
+            margin-bottom: 20px;
         }
 
         .gauge {
-            width: 250px;
-            height: 250px;
-            margin: 0 auto 20px;
+            width: 172px;
+            height: 172px;
+            margin: 0 auto 16px;
             position: relative;
         }
 
@@ -232,24 +315,16 @@
             width: 100%;
             height: 100%;
             border-radius: 50%;
-            background: conic-gradient(
-                from 0deg,
-                #00ff41 0deg,
-                #ffff00 90deg,
-                #ff8800 180deg,
-                #ff0000 270deg,
-                #ff0000 360deg
-            );
             display: flex;
             align-items: center;
             justify-content: center;
-            box-shadow: 0 0 30px rgba(0, 255, 65, 0.5);
+            /* background gradient injected by JS — acts as colored effort ring */
         }
 
         .gauge-inner {
-            width: 85%;
-            height: 85%;
-            background: #1a1a1a;
+            width: 83%;
+            height: 83%;
+            background: #f5f5f7;
             border-radius: 50%;
             display: flex;
             flex-direction: column;
@@ -258,244 +333,407 @@
         }
 
         .gauge-value {
-            font-size: 3em;
-            font-weight: 900;
-            font-family: 'Orbitron', sans-serif;
-            color: #00ff41;
+            font-family: 'Orbitron', -apple-system, "SF Pro Display", monospace;
+            font-size: 42px;
+            font-weight: 700;
+            color: #1d1d1f;
+            line-height: 1;
+            letter-spacing: -1px;
         }
 
         .gauge-label {
-            font-size: 0.9em;
-            color: #888;
-            margin-top: 5px;
+            font-size: 12px;
+            color: #6e6e73;
+            margin-top: 4px;
+            font-weight: 400;
         }
 
+        /* Effort badge */
         .effort-level {
-            font-size: 1.5em;
-            font-weight: 700;
-            font-family: 'Orbitron', sans-serif;
-            padding: 15px;
-            border-radius: 10px;
-            text-align: center;
-            margin-bottom: 20px;
-            text-transform: uppercase;
-            letter-spacing: 2px;
+            display: inline-block;
+            font-size: 13px;
+            font-weight: 500;
+            padding: 5px 14px;
+            border-radius: 20px;
+            margin-bottom: 16px;
+            letter-spacing: 0;
+            text-transform: none;
         }
 
         .effort-suave {
-            background: rgba(0, 255, 65, 0.2);
-            color: #00ff41;
-            border: 2px solid #00ff41;
+            background: #d4f5e2;
+            color: #1a7f4b;
         }
 
         .effort-moderado {
-            background: rgba(255, 255, 0, 0.2);
-            color: #ffff00;
-            border: 2px solid #ffff00;
+            background: #fff3d0;
+            color: #8a6000;
         }
 
         .effort-alto {
-            background: rgba(255, 136, 0, 0.2);
-            color: #ff8800;
-            border: 2px solid #ff8800;
+            background: #ffe8d0;
+            color: #8a3a00;
         }
 
         .effort-maximo {
-            background: rgba(255, 0, 0, 0.2);
-            color: #ff0000;
-            border: 2px solid #ff0000;
+            background: #ffd6db;
+            color: #8a0014;
         }
 
+        /* Recommendation */
         .recommendation {
-            background: rgba(0, 255, 65, 0.05);
-            border-left: 4px solid #00ff41;
-            padding: 20px;
-            border-radius: 8px;
+            background: #f5f5f7;
+            border-radius: 12px;
+            padding: 16px 18px;
+            font-size: 15px;
+            color: #1d1d1f;
             line-height: 1.6;
-            margin-bottom: 20px;
+            margin-bottom: 14px;
         }
 
+        /* Stats grid */
         .stats-grid {
             display: grid;
             grid-template-columns: 1fr 1fr;
-            gap: 15px;
+            gap: 10px;
         }
 
         .stat-box {
-            background: rgba(0, 255, 65, 0.05);
-            border: 1px solid #333;
-            border-radius: 8px;
-            padding: 15px;
+            background: #ffffff;
+            border-radius: 12px;
+            padding: 14px 16px;
             text-align: center;
         }
 
         .stat-label {
-            color: #888;
-            font-size: 0.85em;
-            margin-bottom: 5px;
+            color: #6e6e73;
+            font-size: 11px;
+            font-weight: 500;
+            text-transform: uppercase;
+            letter-spacing: 0.6px;
+            margin-bottom: 6px;
         }
 
         .stat-value {
-            color: #00ff41;
-            font-size: 1.5em;
-            font-weight: 700;
-            font-family: 'Orbitron', sans-serif;
+            color: #1d1d1f;
+            font-size: 20px;
+            font-weight: 600;
         }
 
+        /* Error state */
         .error {
-            background: rgba(255, 0, 0, 0.2);
-            border: 2px solid #ff0000;
-            color: #ff0000;
-            padding: 20px;
+            background: #fff0ef;
             border-radius: 10px;
-            margin-top: 20px;
-            text-align: center;
+            color: #c0392b;
+            padding: 14px 18px;
+            margin-top: 14px;
+            font-size: 14px;
         }
 
+        /* Loading */
         .loading {
             text-align: center;
             padding: 20px;
-            color: #00ff41;
-            font-size: 1.2em;
+            color: #6e6e73;
+            font-size: 15px;
         }
 
+        /* Responsive */
         @media (max-width: 768px) {
             .main-content {
                 grid-template-columns: 1fr;
             }
 
             h1 {
-                font-size: 2.5em;
+                font-size: 36px;
             }
 
             .stats-grid {
-                grid-template-columns: 1fr;
+                grid-template-columns: 1fr 1fr;
+            }
+
+            header {
+                padding: 40px 0 32px;
             }
         }
 
         footer {
             text-align: center;
-            margin-top: 50px;
+            margin-top: 64px;
             padding: 20px;
-            color: #666;
-            font-size: 0.9em;
+            color: #6e6e73;
+            font-size: 12px;
+            line-height: 1.8;
+        }
+
+        /* =========================================
+           PANEL DE ANÁLISIS CSV
+           ========================================= */
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(16px); }
+            to   { opacity: 1; transform: translateY(0); }
+        }
+
+        .analysis-panel {
+            margin-bottom: 32px;
+        }
+
+        .analysis-panel.visible {
+            animation: fadeIn 0.4s ease-out forwards;
+        }
+
+        .kpi-grid {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 12px;
+            margin-bottom: 16px;
+        }
+
+        .kpi-card {
+            background: #f5f5f7;
+            border-radius: 18px;
+            padding: 20px 12px;
+            text-align: center;
+            box-shadow: 0 2px 12px rgba(0, 0, 0, 0.06);
+        }
+
+        .kpi-value {
+            font-size: 20px;
+            font-weight: 700;
+            color: #1d1d1f;
+            letter-spacing: -0.3px;
+            margin-bottom: 4px;
+        }
+
+        .kpi-label {
+            font-size: 11px;
+            font-weight: 500;
+            color: #6e6e73;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .charts-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 12px;
+            margin-bottom: 16px;
+        }
+
+        .chart-card {
+            background: #f5f5f7;
+            border-radius: 18px;
+            padding: 20px 18px 14px;
+            box-shadow: 0 2px 12px rgba(0, 0, 0, 0.06);
+        }
+
+        .chart-card.chart-full {
+            grid-column: 1 / -1;
+        }
+
+        .chart-card h3 {
+            font-size: 11px;
+            font-weight: 600;
+            color: #6e6e73;
+            text-transform: uppercase;
+            letter-spacing: 0.6px;
+            margin-bottom: 14px;
+        }
+
+        .laps-table-card {
+            background: #f5f5f7;
+            border-radius: 18px;
+            padding: 20px;
+            box-shadow: 0 2px 12px rgba(0, 0, 0, 0.06);
+            overflow-x: auto;
+        }
+
+        .laps-table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 13px;
+        }
+
+        .laps-table th {
+            text-align: left;
+            padding: 6px 12px 10px;
+            color: #6e6e73;
+            font-size: 11px;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            border-bottom: 1px solid #d2d2d7;
+        }
+
+        .laps-table td {
+            padding: 9px 12px;
+            color: #1d1d1f;
+            border-bottom: 1px solid #e8e8ed;
+        }
+
+        .laps-table tbody tr:last-child td {
+            border-bottom: none;
+        }
+
+        .lap-row-best-pace td { background: rgba(52, 199, 89, 0.10); }
+        .lap-row-max-hr   td { background: rgba(255, 59, 48, 0.07); }
+
+        .lap-row-summary td {
+            font-weight: 600;
+            border-top: 2px solid #d2d2d7;
+            border-bottom: none;
+            padding-top: 12px;
+        }
+
+        @media (max-width: 768px) {
+            .kpi-grid    { grid-template-columns: 1fr 1fr; }
+            .charts-grid { grid-template-columns: 1fr; }
+            .chart-card.chart-full { grid-column: auto; }
         }
     </style>
 </head>
 <body>
     <div class="container">
         <header>
-            <h1>RUN<span style="color: #fff;">AI</span></h1>
+            <h1>RunAI</h1>
             <p class="subtitle">Predicción de Esfuerzo en Corredores con Machine Learning</p>
         </header>
+
+        <!-- Panel de análisis CSV — visible tras importar -->
+        <div id="analysisPanel" class="analysis-panel" style="display: none;">
+
+            <div class="kpi-grid">
+                <div class="kpi-card">
+                    <div class="kpi-value" id="kpiDistance">--</div>
+                    <div class="kpi-label">Distancia</div>
+                </div>
+                <div class="kpi-card">
+                    <div class="kpi-value" id="kpiDuration">--</div>
+                    <div class="kpi-label">Duración</div>
+                </div>
+                <div class="kpi-card">
+                    <div class="kpi-value" id="kpiPace">--</div>
+                    <div class="kpi-label">Ritmo</div>
+                </div>
+                <div class="kpi-card">
+                    <div class="kpi-value" id="kpiHR">--</div>
+                    <div class="kpi-label">FC Media</div>
+                </div>
+            </div>
+
+            <div class="charts-grid">
+                <div class="chart-card">
+                    <h3>Ritmo por vuelta</h3>
+                    <canvas id="chartPace"></canvas>
+                </div>
+                <div class="chart-card">
+                    <h3>Frecuencia Cardíaca por vuelta</h3>
+                    <canvas id="chartHR"></canvas>
+                </div>
+                <div class="chart-card chart-full">
+                    <h3>Desnivel por vuelta</h3>
+                    <canvas id="chartElevation"></canvas>
+                </div>
+            </div>
+
+            <div class="laps-table-card">
+                <table class="laps-table">
+                    <thead>
+                        <tr>
+                            <th>Vuelta</th>
+                            <th>Tiempo</th>
+                            <th>Ritmo</th>
+                            <th>FC Media</th>
+                            <th>FC Máx</th>
+                            <th>Desnivel</th>
+                        </tr>
+                    </thead>
+                    <tbody id="lapsTableBody"></tbody>
+                </table>
+            </div>
+
+        </div>
 
         <div class="main-content">
             <!-- Panel de entrada -->
             <div class="panel">
                 <h2>Datos del Entrenamiento</h2>
-                
-                <div class="pace-display">
-                    <div class="label">Pace Calculado</div>
-                    <div class="value" id="paceDisplay">5:43 min/km</div>
-                </div>
+
+                <button type="button" class="import-button" id="importCsvButton">
+                    Importar CSV Garmin
+                </button>
+                <input type="file" id="csvFileInput" accept=".csv" style="display: none;">
 
                 <form id="predictionForm">
                     <div class="form-group">
-                        <label>
-                            Velocidad Media (km/h)
-                            <span class="value-display" id="speedMeanValue">10.5</span>
-                        </label>
-                        <input type="range" id="speedMean" min="5" max="25" step="0.1" value="10.5">
-                    </div>
-
-                    <div class="form-group">
-                        <label>
-                            Velocidad Máxima (km/h)
-                            <span class="value-display" id="speedMaxValue">14.0</span>
-                        </label>
-                        <input type="range" id="speedMax" min="5" max="30" step="0.1" value="14.0">
-                    </div>
-
-                    <div class="form-group">
-                        <label>
-                            Desviación Velocidad
-                            <span class="value-display" id="speedStdValue">1.5</span>
-                        </label>
-                        <input type="range" id="speedStd" min="0" max="5" step="0.1" value="1.5">
-                    </div>
-
-                    <div class="form-group">
-                        <label>
-                            Altitud Media (m)
-                            <span class="value-display" id="altitudeMeanValue">100</span>
-                        </label>
-                        <input type="range" id="altitudeMean" min="0" max="3000" step="10" value="100">
-                    </div>
-
-                    <div class="form-group">
-                        <label>
-                            Ganancia Altitud (m)
-                            <span class="value-display" id="altitudeGainValue">50</span>
-                        </label>
-                        <input type="range" id="altitudeGain" min="0" max="1000" step="5" value="50">
-                    </div>
-
-                    <div class="form-group">
-                        <label>
-                            FC Mínima (bpm)
-                            <span class="value-display" id="hrMinValue">110</span>
-                        </label>
-                        <input type="range" id="hrMin" min="60" max="180" step="1" value="110">
-                    </div>
-
-                    <div class="form-group">
-                        <label>
-                            FC Máxima (bpm)
-                            <span class="value-display" id="hrMaxValue">170</span>
-                        </label>
-                        <input type="range" id="hrMax" min="80" max="220" step="1" value="170">
-                    </div>
-
-                    <div class="form-group">
-                        <label>
-                            Desviación FC
-                            <span class="value-display" id="hrStdValue">12.0</span>
-                        </label>
-                        <input type="range" id="hrStd" min="0" max="30" step="0.5" value="12.0">
-                    </div>
-
-                    <div class="form-group">
-                        <label>
-                            Duración (min)
-                            <span class="value-display" id="durationValue">55</span>
-                        </label>
-                        <input type="range" id="duration" min="5" max="300" step="1" value="55">
-                    </div>
-
-                    <div class="form-group">
-                        <label>
-                            Distancia (km)
+                        <div class="label-row">
+                            <label for="distance">Distancia (km)</label>
                             <span class="value-display" id="distanceValue">10.0</span>
-                        </label>
-                        <input type="range" id="distance" min="1" max="50" step="0.1" value="10.0">
+                        </div>
+                        <input type="range" id="distance" min="1" max="42" step="0.1" value="10.0">
+                    </div>
+
+                    <div class="form-group">
+                        <div class="label-row">
+                            <label for="duration">Duración (min)</label>
+                            <span class="value-display" id="durationValue">55</span>
+                        </div>
+                        <input type="range" id="duration" min="10" max="300" step="1" value="55">
+                    </div>
+
+                    <div class="form-group">
+                        <div class="label-row">
+                            <label for="hrMin">FC Mínima (bpm)</label>
+                            <span class="value-display" id="hrMinValue">110</span>
+                        </div>
+                        <input type="range" id="hrMin" min="60" max="140" step="1" value="110">
+                    </div>
+
+                    <div class="form-group">
+                        <div class="label-row">
+                            <label for="hrMax">FC Máxima (bpm)</label>
+                            <span class="value-display" id="hrMaxValue">170</span>
+                        </div>
+                        <input type="range" id="hrMax" min="120" max="200" step="1" value="170">
+                    </div>
+
+                    <div class="form-group">
+                        <div class="label-row">
+                            <label for="altitudeGain">Desnivel positivo (m)</label>
+                            <span class="value-display" id="altitudeGainValue">42</span>
+                        </div>
+                        <input type="range" id="altitudeGain" min="0" max="500" step="5" value="42">
                     </div>
 
                     <div class="form-group">
                         <label>Género</label>
                         <div class="gender-selector">
-                            <div class="gender-option active" data-gender="male">👨 Masculino</div>
-                            <div class="gender-option" data-gender="female">👩 Femenino</div>
+                            <div class="gender-option active" data-gender="male">Hombre</div>
+                            <div class="gender-option" data-gender="female">Mujer</div>
                         </div>
                     </div>
 
                     <button type="submit">Predecir Esfuerzo</button>
                 </form>
+
+                <!-- Valores calculados en tiempo real -->
+                <div style="display: flex; gap: 10px; margin-top: 14px;">
+                    <div class="pace-display" style="flex: 1; margin-bottom: 0;">
+                        <span class="label">Velocidad media</span>
+                        <span class="value" id="computedSpeed">10.9 km/h</span>
+                    </div>
+                    <div class="pace-display" style="flex: 1; margin-bottom: 0;">
+                        <span class="label">Ritmo</span>
+                        <span class="value" id="computedPace">5:30 min/km</span>
+                    </div>
+                </div>
             </div>
 
             <!-- Panel de resultados -->
             <div class="panel" id="results">
                 <h2>Resultados de la Predicción</h2>
-                
+
                 <div class="gauge-container">
                     <div class="gauge">
                         <div class="gauge-circle" id="gaugeCircle">
@@ -505,10 +743,9 @@
                             </div>
                         </div>
                     </div>
-                </div>
-
-                <div class="effort-level" id="effortLevel">
-                    Esfuerzo Alto
+                    <div class="effort-level" id="effortLevel">
+                        Esfuerzo Alto
+                    </div>
                 </div>
 
                 <div class="recommendation" id="recommendation">
@@ -522,7 +759,7 @@
                     </div>
                     <div class="stat-box">
                         <div class="stat-label">Modelo</div>
-                        <div class="stat-value" style="font-size: 1em;">XGBoost</div>
+                        <div class="stat-value" style="font-size: 14px; font-weight: 600;">XGBoost</div>
                     </div>
                     <div class="stat-box">
                         <div class="stat-label">R² Score</div>
@@ -537,56 +774,46 @@
         </div>
 
         <footer>
-            <p>TFM Máster en IA - Predicción de Esfuerzo en Corredores</p>
-            <p>Dataset: FitRec/Endomondo (~20M actividades) | Modelo: XGBoost</p>
+            <p>TFM Máster en IA — Predicción de Esfuerzo en Corredores</p>
+            <p>Dataset: FitRec/Endomondo (~20M actividades) · Modelo: XGBoost</p>
         </footer>
     </div>
 
     <script>
         // Configuración de la API
-        const API_URL = 'https://runai-api-1059009495382.europe-southwest1.run.app/predict';
-        
+        const API_URL = 'https://runai-api-873181283780.europe-southwest1.run.app/predict';
+
         // Estado de la aplicación
         let selectedGender = 'male';
 
         // Elementos del DOM
         const form = document.getElementById('predictionForm');
         const resultsPanel = document.getElementById('results');
-        const paceDisplay = document.getElementById('paceDisplay');
 
-        // Sliders
+        // Sliders visibles
         const sliders = {
-            speedMean: document.getElementById('speedMean'),
-            speedMax: document.getElementById('speedMax'),
-            speedStd: document.getElementById('speedStd'),
-            altitudeMean: document.getElementById('altitudeMean'),
-            altitudeGain: document.getElementById('altitudeGain'),
+            distance: document.getElementById('distance'),
+            duration: document.getElementById('duration'),
             hrMin: document.getElementById('hrMin'),
             hrMax: document.getElementById('hrMax'),
-            hrStd: document.getElementById('hrStd'),
-            duration: document.getElementById('duration'),
-            distance: document.getElementById('distance')
+            altitudeGain: document.getElementById('altitudeGain')
         };
 
-        // Actualizar valores de los sliders
+        // Actualizar valores de los sliders y recalcular
         Object.keys(sliders).forEach(key => {
             const slider = sliders[key];
             const valueDisplay = document.getElementById(key + 'Value');
-            
+
             slider.addEventListener('input', (e) => {
                 valueDisplay.textContent = e.target.value;
-                
-                // Actualizar pace en tiempo real
-                if (key === 'speedMean') {
-                    updatePaceDisplay(parseFloat(e.target.value));
-                }
+                updateComputedValues();
             });
         });
 
         // Selector de género
         document.querySelectorAll('.gender-option').forEach(option => {
             option.addEventListener('click', (e) => {
-                document.querySelectorAll('.gender-option').forEach(opt => 
+                document.querySelectorAll('.gender-option').forEach(opt =>
                     opt.classList.remove('active')
                 );
                 e.target.classList.add('active');
@@ -594,41 +821,566 @@
             });
         });
 
-        // Calcular y mostrar pace
-        function updatePaceDisplay(speedKmh) {
-            if (speedKmh <= 0) {
-                paceDisplay.textContent = '--:--';
-                return;
+        // Calcular speed_mean, speed_max, speed_std, heart_rate_std y actualizar display
+        function updateComputedValues() {
+            const distKm = parseFloat(sliders.distance.value);
+            const durMin = parseFloat(sliders.duration.value);
+            const speedMean = distKm / (durMin / 60);
+
+            // Velocidad media
+            document.getElementById('computedSpeed').textContent = speedMean.toFixed(1) + ' km/h';
+
+            // Ritmo (min/km)
+            if (speedMean > 0) {
+                const paceMinKm = 60 / speedMean;
+                const minutes = Math.floor(paceMinKm);
+                const seconds = Math.round((paceMinKm - minutes) * 60);
+                document.getElementById('computedPace').textContent =
+                    `${minutes}:${seconds.toString().padStart(2, '0')} min/km`;
+            } else {
+                document.getElementById('computedPace').textContent = '--:-- min/km';
             }
-            const paceMinKm = 60 / speedKmh;
-            const minutes = Math.floor(paceMinKm);
-            const seconds = Math.round((paceMinKm - minutes) * 60);
-            paceDisplay.textContent = `${minutes}:${seconds.toString().padStart(2, '0')} min/km`;
         }
 
-        // Inicializar pace
-        updatePaceDisplay(10.5);
+        // Inicializar valores calculados
+        updateComputedValues();
+
+        // ========== FUNCIONALIDAD IMPORTAR CSV GARMIN ==========
+
+        const importButton = document.getElementById('importCsvButton');
+        const csvFileInput = document.getElementById('csvFileInput');
+
+        // Abrir selector de archivo al hacer clic en el botón
+        importButton.addEventListener('click', () => {
+            csvFileInput.click();
+        });
+
+        // Procesar archivo CSV cuando se selecciona
+        csvFileInput.addEventListener('change', (e) => {
+            const file = e.target.files[0];
+            if (!file) return;
+
+            const reader = new FileReader();
+            reader.onload = (event) => {
+                try {
+                    const csvContent = event.target.result;
+                    const data = parseGarminCSV(csvContent);
+                    fillFormWithData(data);
+                    buildAnalysisPanel(csvContent);
+                    showToast('success', `✅ CSV importado: ${data.distance_km} km | ${data.duration_display} | Ritmo ${data.pace_display}`);
+                } catch (error) {
+                    console.error('Error parsing CSV:', error);
+                    showToast('error', '❌ Formato de CSV no reconocido. Exporta desde Garmin Connect → Actividad → Exportar CSV');
+                }
+            };
+            reader.readAsText(file);
+
+            // Resetear input para permitir seleccionar el mismo archivo de nuevo
+            csvFileInput.value = '';
+        });
+
+        // Parsear CSV de Garmin Connect
+        function parseGarminCSV(csvContent) {
+            const lines = csvContent.split('\n').map(line => line.trim()).filter(line => line);
+
+            if (lines.length < 2) {
+                throw new Error('CSV vacío o inválido');
+            }
+
+            // Parsear header
+            const headers = parseCSVLine(lines[0]);
+
+            // Buscar la fila "Resumen" (última fila con datos)
+            let summaryRow = null;
+            for (let i = lines.length - 1; i >= 1; i--) {
+                const row = parseCSVLine(lines[i]);
+                if (row[0] && (row[0].toLowerCase().includes('resumen') || row[0].toLowerCase().includes('summary'))) {
+                    summaryRow = row;
+                    break;
+                }
+            }
+
+            if (!summaryRow) {
+                throw new Error('No se encontró la fila "Resumen" en el CSV');
+            }
+
+            // Crear objeto con índices de columnas
+            const colIndex = {};
+            headers.forEach((header, index) => {
+                colIndex[header] = index;
+            });
+
+            // Extraer datos de la fila Resumen
+            const distanceCol = findColumn(colIndex, ['Distancia', 'Distance']);
+            const timeCol = findColumn(colIndex, ['Tiempo acumulado', 'Time', 'Tiempo']);
+            const paceCol = findColumn(colIndex, ['Ritmo medio', 'Pace', 'Avg Pace']);
+            const hrMeanCol = findColumn(colIndex, ['Frecuencia cardiaca media', 'Avg HR', 'Average Heart Rate']);
+            const hrMaxCol = findColumn(colIndex, ['FC máxima', 'Max HR', 'Maximum Heart Rate']);
+            const ascentCol = findColumn(colIndex, ['Ascenso total', 'Total Ascent', 'Ascent']);
+            const descentCol = findColumn(colIndex, ['Descenso total', 'Total Descent', 'Descent']);
+
+            // Extraer valores
+            const distanceKm = parseFloat(summaryRow[distanceCol]?.replace(',', '.')) || 0;
+            const timeStr = summaryRow[timeCol] || '0:00';
+            const paceStr = summaryRow[paceCol] || '5:00';
+            const hrMean = parseInt(summaryRow[hrMeanCol]) || 150;
+            const hrMax = parseInt(summaryRow[hrMaxCol]) || 180;
+            const altitudeGain = parseInt(summaryRow[ascentCol]) || 0;
+            const altitudeDescent = parseInt(summaryRow[descentCol]) || 0;
+
+            // Convertir tiempo a minutos
+            const durationMin = timeToMinutes(timeStr);
+
+            // Calcular FC mínima de las vueltas
+            const lapHRs = [];
+            for (let i = 1; i < lines.length; i++) {
+                const row = parseCSVLine(lines[i]);
+                if (row[0] && !row[0].toLowerCase().includes('resumen') && !row[0].toLowerCase().includes('summary')) {
+                    const lapHR = parseInt(row[hrMeanCol]);
+                    if (lapHR && lapHR > 0) {
+                        lapHRs.push(lapHR);
+                    }
+                }
+            }
+
+            const hrMin = lapHRs.length > 0 ? Math.min(...lapHRs) : Math.max(hrMean - 30, 100);
+
+            return {
+                distance_km: distanceKm,
+                duration_min: durationMin,
+                heart_rate_min: hrMin,
+                heart_rate_max: hrMax,
+                altitude_gain: altitudeGain,
+                // Para mostrar en el toast
+                duration_display: timeStr,
+                pace_display: paceStr
+            };
+        }
+
+        // Parsear una línea CSV (maneja comillas y comas)
+        function parseCSVLine(line) {
+            const result = [];
+            let current = '';
+            let inQuotes = false;
+
+            for (let i = 0; i < line.length; i++) {
+                const char = line[i];
+
+                if (char === '"') {
+                    inQuotes = !inQuotes;
+                } else if (char === ',' && !inQuotes) {
+                    result.push(current.trim());
+                    current = '';
+                } else {
+                    current += char;
+                }
+            }
+            result.push(current.trim());
+
+            return result;
+        }
+
+        // Encontrar columna por múltiples nombres posibles
+        function findColumn(colIndex, possibleNames) {
+            for (const name of possibleNames) {
+                for (const key in colIndex) {
+                    if (key.toLowerCase().includes(name.toLowerCase())) {
+                        return colIndex[key];
+                    }
+                }
+            }
+            return 0; // Retornar primera columna si no se encuentra
+        }
+
+        // Convertir tiempo "55:59" o "1:05:30" a minutos
+        function timeToMinutes(timeStr) {
+            const parts = timeStr.split(':').map(p => parseInt(p) || 0);
+            if (parts.length === 3) {
+                // Formato H:MM:SS
+                return parts[0] * 60 + parts[1] + parts[2] / 60;
+            } else if (parts.length === 2) {
+                // Formato MM:SS
+                return parts[0] + parts[1] / 60;
+            }
+            return 0;
+        }
+
+        // Convertir pace "5:36" a minutos decimales
+        function paceToMinutes(paceStr) {
+            const parts = paceStr.split(':').map(p => parseInt(p) || 0);
+            if (parts.length === 2) {
+                return parts[0] + parts[1] / 60;
+            }
+            return parseFloat(paceStr) || 0;
+        }
+
+        // Calcular desviación estándar
+        function calculateStd(values) {
+            if (values.length === 0) return 0;
+            const mean = values.reduce((a, b) => a + b, 0) / values.length;
+            const variance = values.reduce((sum, val) => sum + Math.pow(val - mean, 2), 0) / values.length;
+            return Math.sqrt(variance);
+        }
+
+        // Rellenar formulario con datos extraídos del CSV
+        function fillFormWithData(data) {
+            setSliderValue('distance', data.distance_km);
+            setSliderValue('duration', data.duration_min);
+            setSliderValue('hrMin', data.heart_rate_min);
+            setSliderValue('hrMax', data.heart_rate_max);
+            setSliderValue('altitudeGain', data.altitude_gain);
+            updateComputedValues();
+        }
+
+        // Establecer valor de slider y actualizar display
+        function setSliderValue(sliderId, value) {
+            const slider = sliders[sliderId];
+            if (!slider) return;
+
+            // Asegurar que el valor esté dentro del rango
+            const min = parseFloat(slider.min);
+            const max = parseFloat(slider.max);
+            const clampedValue = Math.max(min, Math.min(max, value));
+
+            slider.value = clampedValue;
+            const valueDisplay = document.getElementById(sliderId + 'Value');
+            if (valueDisplay) {
+                if (sliderId === 'distance') {
+                    valueDisplay.textContent = clampedValue.toFixed(1);
+                } else {
+                    valueDisplay.textContent = Math.round(clampedValue);
+                }
+            }
+        }
+
+        // Mostrar notificación toast
+        function showToast(type, message) {
+            // Eliminar toast anterior si existe
+            const existingToast = document.querySelector('.toast');
+            if (existingToast) {
+                existingToast.remove();
+            }
+
+            // Crear nuevo toast
+            const toast = document.createElement('div');
+            toast.className = `toast ${type}`;
+            toast.textContent = message;
+            document.body.appendChild(toast);
+
+            // Eliminar después de 5 segundos
+            setTimeout(() => {
+                toast.style.animation = 'slideOut 0.3s ease-out';
+                setTimeout(() => toast.remove(), 300);
+            }, 5000);
+        }
+
+        // ========== FIN FUNCIONALIDAD IMPORTAR CSV ==========
+
+        // ========== PANEL DE ANÁLISIS CSV ==========
+
+        let chartInstances = { pace: null, hr: null, elevation: null };
+
+        function parsePace(str) {
+            // "5:46" → 346 seconds; "--" → null
+            if (!str || str === '--' || str.trim() === '') return null;
+            const parts = str.split(':').map(p => parseInt(p) || 0);
+            if (parts.length === 2) return parts[0] * 60 + parts[1];
+            return null;
+        }
+
+        function formatPace(secs) {
+            // 346 → "5:46"
+            if (!secs || secs <= 0) return '--';
+            const m = Math.floor(secs / 60);
+            const s = Math.round(secs % 60);
+            return `${m}:${s.toString().padStart(2, '0')}`;
+        }
+
+        function buildAnalysisPanel(csvContent) {
+            try {
+                const lines = csvContent.split('\n').map(line => line.trim()).filter(line => line);
+                if (lines.length < 2) return;
+
+                const headers = parseCSVLine(lines[0]);
+                const colIndex = {};
+                headers.forEach((header, index) => { colIndex[header] = index; });
+
+                const timeCol   = findColumn(colIndex, ['Tiempo acumulado', 'Tiempo', 'Time']);
+                const distCol   = findColumn(colIndex, ['Distancia', 'Distance']);
+                const paceCol   = findColumn(colIndex, ['Ritmo medio', 'Pace', 'Avg Pace']);
+                const hrMeanCol = findColumn(colIndex, ['Frecuencia cardiaca media', 'Avg HR', 'Average Heart Rate']);
+                const hrMaxCol  = findColumn(colIndex, ['FC máxima', 'Max HR', 'Maximum Heart Rate']);
+                const ascentCol = findColumn(colIndex, ['Ascenso total', 'Total Ascent', 'Ascent']);
+
+                let summaryRow = null;
+                const lapRows = [];
+
+                for (let i = 1; i < lines.length; i++) {
+                    const row = parseCSVLine(lines[i]);
+                    if (!row[0]) continue;
+                    if (row[0].toLowerCase().includes('resumen') || row[0].toLowerCase().includes('summary')) {
+                        summaryRow = row;
+                    } else {
+                        lapRows.push(row);
+                    }
+                }
+
+                if (!summaryRow) return;
+
+                // KPI cards from summary row
+                const sumDist = parseFloat(summaryRow[distCol]?.replace(',', '.')) || 0;
+                const sumTime = summaryRow[timeCol] || '--';
+                const sumPace = summaryRow[paceCol] || '--';
+                const sumHR   = parseInt(summaryRow[hrMeanCol]) || 0;
+
+                document.getElementById('kpiDistance').textContent = sumDist.toFixed(2) + ' km';
+                document.getElementById('kpiDuration').textContent = sumTime;
+                document.getElementById('kpiPace').textContent     = sumPace + ' /km';
+                document.getElementById('kpiHR').textContent       = sumHR ? sumHR + ' bpm' : '--';
+
+                // Parse per-lap data (skip partial laps < 0.5 km)
+                const laps = [];
+                for (const row of lapRows) {
+                    const lapDist = parseFloat(row[distCol]?.replace(',', '.')) || 0;
+                    if (lapDist < 0.5) continue;
+
+                    const paceStr = row[paceCol] || '--';
+                    laps.push({
+                        num:     laps.length + 1,
+                        time:    row[timeCol] || '--',
+                        paceStr,
+                        paceSec: parsePace(paceStr),
+                        hrMean:  parseInt(row[hrMeanCol]) || null,
+                        hrMax:   parseInt(row[hrMaxCol])  || null,
+                        ascent:  parseInt(row[ascentCol]) || 0
+                    });
+                }
+
+                if (laps.length === 0) return;
+
+                // Identify best pace and highest FC lap for table highlighting
+                const validPaces = laps.filter(l => l.paceSec !== null).map(l => l.paceSec);
+                const bestPaceSec = validPaces.length ? Math.min(...validPaces) : null;
+                const allHRMax    = laps.filter(l => l.hrMax !== null).map(l => l.hrMax);
+                const maxHRVal    = allHRMax.length ? Math.max(...allHRMax) : null;
+
+                // Show panel with fade-in
+                const panel = document.getElementById('analysisPanel');
+                panel.style.display = 'block';
+                panel.offsetHeight; // force reflow
+                panel.classList.add('visible');
+                panel.scrollIntoView({ behavior: 'smooth', block: 'start' });
+
+                renderAnalysisCharts(laps);
+                renderLapsTable(laps, summaryRow, { timeCol, paceCol, hrMeanCol, hrMaxCol, ascentCol }, bestPaceSec, maxHRVal);
+
+            } catch (err) {
+                console.error('Error building analysis panel:', err);
+            }
+        }
+
+        function renderAnalysisCharts(laps) {
+            const labels = laps.map(l => `V${l.num}`);
+            const font   = { family: '-apple-system, "SF Pro Display", "Helvetica Neue", sans-serif', size: 11 };
+
+            // Destroy previous instances
+            Object.values(chartInstances).forEach(c => c && c.destroy());
+
+            // Chart 1 — Pace (line, reversed Y so faster = higher)
+            chartInstances.pace = new Chart(
+                document.getElementById('chartPace').getContext('2d'), {
+                type: 'line',
+                data: {
+                    labels,
+                    datasets: [{
+                        data: laps.map(l => l.paceSec),
+                        borderColor: '#0071e3',
+                        backgroundColor: 'rgba(0, 113, 227, 0.08)',
+                        fill: true,
+                        tension: 0.35,
+                        pointBackgroundColor: '#ffffff',
+                        pointBorderColor: '#0071e3',
+                        pointBorderWidth: 2,
+                        pointRadius: 4,
+                        pointHoverRadius: 6,
+                        borderWidth: 2,
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    plugins: {
+                        legend: { display: false },
+                        tooltip: {
+                            callbacks: { label: ctx => ' ' + formatPace(ctx.raw) + ' min/km' }
+                        }
+                    },
+                    scales: {
+                        y: {
+                            reverse: true,
+                            grid:  { color: 'rgba(0,0,0,0.05)' },
+                            ticks: { font, callback: val => formatPace(val) }
+                        },
+                        x: { grid: { display: false }, ticks: { font } }
+                    }
+                }
+            });
+
+            // Chart 2 — Heart Rate (FC media solid, FC máx dashed)
+            chartInstances.hr = new Chart(
+                document.getElementById('chartHR').getContext('2d'), {
+                type: 'line',
+                data: {
+                    labels,
+                    datasets: [
+                        {
+                            label: 'FC Media',
+                            data: laps.map(l => l.hrMean),
+                            borderColor: '#ff3b30',
+                            backgroundColor: 'rgba(255, 59, 48, 0.07)',
+                            fill: true,
+                            tension: 0.35,
+                            pointBackgroundColor: '#ffffff',
+                            pointBorderColor: '#ff3b30',
+                            pointBorderWidth: 2,
+                            pointRadius: 4,
+                            borderWidth: 2,
+                        },
+                        {
+                            label: 'FC Máxima',
+                            data: laps.map(l => l.hrMax),
+                            borderColor: 'rgba(255, 59, 48, 0.45)',
+                            backgroundColor: 'transparent',
+                            fill: false,
+                            tension: 0.35,
+                            pointBackgroundColor: 'rgba(255, 59, 48, 0.45)',
+                            pointRadius: 3,
+                            borderWidth: 2,
+                            borderDash: [5, 3],
+                        }
+                    ]
+                },
+                options: {
+                    responsive: true,
+                    plugins: {
+                        legend: {
+                            display: true,
+                            labels: { font, boxWidth: 12, padding: 14, usePointStyle: true }
+                        },
+                        tooltip: {
+                            callbacks: { label: ctx => ` ${ctx.dataset.label}: ${ctx.raw} bpm` }
+                        }
+                    },
+                    scales: {
+                        y: {
+                            grid:  { color: 'rgba(0,0,0,0.05)' },
+                            ticks: { font, callback: val => val + ' bpm' }
+                        },
+                        x: { grid: { display: false }, ticks: { font } }
+                    }
+                }
+            });
+
+            // Chart 3 — Elevation (bar, green)
+            chartInstances.elevation = new Chart(
+                document.getElementById('chartElevation').getContext('2d'), {
+                type: 'bar',
+                data: {
+                    labels,
+                    datasets: [{
+                        data: laps.map(l => l.ascent),
+                        backgroundColor: 'rgba(52, 199, 89, 0.70)',
+                        borderColor: '#34c759',
+                        borderWidth: 1,
+                        borderRadius: 6,
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    plugins: {
+                        legend: { display: false },
+                        tooltip: {
+                            callbacks: { label: ctx => ` +${ctx.raw} m` }
+                        }
+                    },
+                    scales: {
+                        y: {
+                            grid:  { color: 'rgba(0,0,0,0.05)' },
+                            ticks: { font, callback: val => '+' + val + ' m' }
+                        },
+                        x: { grid: { display: false }, ticks: { font } }
+                    }
+                }
+            });
+        }
+
+        function renderLapsTable(laps, summaryRow, cols, bestPaceSec, maxHRVal) {
+            const tbody = document.getElementById('lapsTableBody');
+            tbody.innerHTML = '';
+
+            laps.forEach(lap => {
+                const tr = document.createElement('tr');
+                const isBestPace = bestPaceSec !== null && lap.paceSec === bestPaceSec;
+                const isMaxHR    = maxHRVal    !== null && lap.hrMax   === maxHRVal;
+
+                if (isBestPace)      tr.classList.add('lap-row-best-pace');
+                else if (isMaxHR)    tr.classList.add('lap-row-max-hr');
+
+                tr.innerHTML = `
+                    <td>${lap.num}</td>
+                    <td>${lap.time}</td>
+                    <td>${lap.paceStr}</td>
+                    <td>${lap.hrMean ?? '--'}</td>
+                    <td>${lap.hrMax  ?? '--'}</td>
+                    <td>${lap.ascent > 0 ? '+' + lap.ascent + ' m' : '0 m'}</td>
+                `;
+                tbody.appendChild(tr);
+            });
+
+            // Summary row (bold, visually separated)
+            const trSum = document.createElement('tr');
+            trSum.classList.add('lap-row-summary');
+            trSum.innerHTML = `
+                <td>Total</td>
+                <td>${summaryRow[cols.timeCol]   || '--'}</td>
+                <td>${summaryRow[cols.paceCol]   || '--'}</td>
+                <td>${summaryRow[cols.hrMeanCol] || '--'}</td>
+                <td>${summaryRow[cols.hrMaxCol]  || '--'}</td>
+                <td>—</td>
+            `;
+            tbody.appendChild(trSum);
+        }
+
+        // ========== FIN PANEL DE ANÁLISIS ==========
 
         // Enviar formulario
         form.addEventListener('submit', async (e) => {
             e.preventDefault();
-            
+
             const submitButton = form.querySelector('button');
             submitButton.disabled = true;
             submitButton.textContent = 'Prediciendo...';
 
-            // Preparar datos
+            // Leer valores visibles
+            const distKm = parseFloat(sliders.distance.value);
+            const durMin = parseFloat(sliders.duration.value);
+            const hrMinVal = parseInt(sliders.hrMin.value);
+            const hrMaxVal = parseInt(sliders.hrMax.value);
+
+            // Calcular campos derivados
+            const speedMean = distKm / (durMin / 60);
+
+            // Preparar datos para el API
             const data = {
-                speed_mean: parseFloat(sliders.speedMean.value),
-                speed_max: parseFloat(sliders.speedMax.value),
-                speed_std: parseFloat(sliders.speedStd.value),
-                altitude_mean: parseFloat(sliders.altitudeMean.value),
+                speed_mean: speedMean,
+                speed_max: speedMean * 1.3,
+                speed_std: speedMean * 0.15,
+                altitude_mean: 100,
                 altitude_gain: parseFloat(sliders.altitudeGain.value),
-                heart_rate_min: parseInt(sliders.hrMin.value),
-                heart_rate_max: parseInt(sliders.hrMax.value),
-                heart_rate_std: parseFloat(sliders.hrStd.value),
-                duration_min: parseFloat(sliders.duration.value),
-                distance_km: parseFloat(sliders.distance.value),
+                heart_rate_min: hrMinVal,
+                heart_rate_max: hrMaxVal,
+                heart_rate_std: (hrMaxVal - hrMinVal) / 4,
+                duration_min: durMin,
+                distance_km: distKm,
                 gender: selectedGender
             };
 
@@ -647,7 +1399,7 @@
 
                 const result = await response.json();
                 displayResults(result);
-                
+
             } catch (error) {
                 console.error('Error:', error);
                 alert('Error al realizar la predicción. Verifica que la API esté desplegada y la URL sea correcta.\n\n' + error.message);

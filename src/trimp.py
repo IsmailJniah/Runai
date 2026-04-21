@@ -133,7 +133,7 @@ def banister_trimp(
     hrr = (hr_mean - hr_rest) / (hr_max - hr_rest)
     hrr = np.clip(hrr, 1e-6, 1.0)
 
-    return float(duration_min * hrr * np.exp(b * hrr))
+    return float(duration_min * hrr * 0.64 * np.exp(b * hrr))
 
 
 def compute_trimp_column(
