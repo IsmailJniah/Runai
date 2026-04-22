@@ -123,20 +123,45 @@ def filter_running_sessions(df: pd.DataFrame) -> pd.DataFrame:
 
 
 def auto_detect_and_load(data_dir: str | Path = "data/raw",
-                         max_rows: Optional[int] = None) -> pd.DataFrame:
+                         max_rows: Optional[int] = None,
+                         use_cache: bool = True) -> pd.DataFrame:
     """
     Detecta automáticamente el formato (jsonl / csv) en data_dir y carga.
+
+    Si use_cache=True y max_rows=None, guarda/lee un archivo Parquet en
+    data_dir/_cache.parquet para evitar re-parsear el JSON en cada ejecución.
     """
     data_dir = Path(data_dir)
+    cache_path = data_dir / "_cache.parquet"
+
+    # Usar caché solo cuando se carga el dataset completo
+    if use_cache and max_rows is None and cache_path.exists():
+        logger.info("Cargando desde caché Parquet: %s", cache_path)
+        print(f"Cargando desde caché ({cache_path.name})…")
+        return pd.read_parquet(cache_path)
+
     candidates_jsonl = list(data_dir.glob("*.jsonl")) + list(data_dir.glob("*.json"))
     candidates_csv = list(data_dir.glob("*.csv"))
 
     if candidates_jsonl:
-        return load_fitrec_jsonl(candidates_jsonl[0], max_rows=max_rows)
-    if candidates_csv:
-        return load_fitrec_csv(candidates_csv[0], max_rows=max_rows)
+        df = load_fitrec_jsonl(candidates_jsonl[0], max_rows=max_rows)
+    elif candidates_csv:
+        df = load_fitrec_csv(candidates_csv[0], max_rows=max_rows)
+    else:
+        raise FileNotFoundError(
+            f"No se encontró ningún archivo de datos en {data_dir}.\n"
+            "Consulta README.md → Sección 'Dataset' para instrucciones de descarga."
+        )
 
-    raise FileNotFoundError(
-        f"No se encontró ningún archivo de datos en {data_dir}.\n"
-        "Consulta README.md → Sección 'Dataset' para instrucciones de descarga."
-    )
+    # Guardar caché (solo si carga completa y pyarrow disponible)
+    if use_cache and max_rows is None:
+        try:
+            # Parquet no soporta columnas con listas de tipos mixtos; guardar solo escalares
+            scalar_cols = [c for c in df.columns if not df[c].apply(lambda x: isinstance(x, list)).any()]
+            df[scalar_cols].to_parquet(cache_path, index=False)
+            logger.info("Caché Parquet guardado en %s (columnas: %s)", cache_path, scalar_cols)
+            print(f"Caché guardado en {cache_path.name} — próximas cargas serán instantáneas.")
+        except Exception as exc:
+            logger.warning("No se pudo guardar caché Parquet: %s", exc)
+
+    return df
