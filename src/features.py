@@ -1,29 +1,28 @@
 """
 features.py — Construcción de features por sesión para RunnAing TFM.
 
-Features GPS (9):
+Predictores externos (9) — los únicos que entran al modelo:
   1. duration_min       — duración de la sesión (minutos)
   2. distance_km        — distancia total recorrida (km)
   3. speed_mean         — velocidad media (km/h)
   4. speed_max          — velocidad máxima (km/h)
-  5. speed_std          — desviación estándar de la velocidad instantánea
+  5. speed_std          — variabilidad de velocidad (desv. típica instantánea)
   6. pace_mean          — ritmo medio (min/km)  =  60 / speed_mean
   7. elevation_gain     — desnivel positivo acumulado (m)
   8. altitude_mean      — altitud media (m)
   9. grade_factor       — factor de pendiente  =  elevation_gain / distance_km
 
-Features cardíacas (4):
+Features cardíacas (4) — calculables, pero EXCLUIDAS del modelo (OE3):
   10. hr_mean           — FC media de la sesión (bpm)
   11. hr_max            — FC máxima de la sesión (bpm)
   12. hr_min            — FC mínima de la sesión (bpm)
-  13. hrv_estimate      — HRV estimado: std(RR_intervals), donde RR = 60/FC_inst
-                          (Shcherbina et al., 2017)
+  13. hrv_estimate      — HRV estimado: std(RR_intervals), RR = 60/FC_inst
 
-NOTA: hr_mean, hr_max, hr_min y hrv_estimate se calculan a partir de la FC
-instantánea. El target TRIMP también usa FC, pero por rutas distintas
-(FC media ponderada vs. distribución instantánea), por lo que la correlación
-es moderada, no perfecta. Si se desea un modelo puramente externo (sin FC),
-usar FEATURE_NAMES_GPS únicamente.
+IMPORTANTE (OE3): El objetivo del TFM es predecir TRIMP a partir de variables
+externas únicamente (carga externa). La FC se usa solo para calcular el target
+TRIMP de Banister, nunca como predictor. build_feature_matrix() usa
+include_hr=False por defecto. El flag include_hr=True existe solo para
+ablación experimental o análisis exploratorio.
 """
 
 from __future__ import annotations
@@ -180,24 +179,24 @@ def compute_hr_features(heart_rate: Sequence[float]) -> dict:
 # Función principal: calcula todas las features por sesión
 # ---------------------------------------------------------------------------
 
-def build_feature_matrix(df: pd.DataFrame, include_hr: bool = True) -> pd.DataFrame:
+def build_feature_matrix(df: pd.DataFrame, include_hr: bool = False) -> pd.DataFrame:
     """
     Aplica compute_gps_features (y opcionalmente compute_hr_features) a cada
-    sesión y devuelve un DataFrame con FEATURE_NAMES como columnas.
+    sesión y devuelve un DataFrame con FEATURE_NAMES_GPS como columnas.
 
     Espera columnas en df:
         timestamp, latitude, longitude, altitude (listas por timestep)
-        heart_rate (lista por timestep, requerido si include_hr=True)
+        heart_rate (lista por timestep, solo si include_hr=True)
 
     Parameters
     ----------
     include_hr : bool
-        Si True (default), incluye las 4 features cardíacas.
-        Si False, devuelve solo las 9 features GPS (útil para ablación).
+        Por defecto False (OE3 del TFM — solo predictores externos).
+        Si True, añade 4 features de FC (solo para ablación/análisis).
 
     Returns
     -------
-    pd.DataFrame con columnas FEATURE_NAMES (o FEATURE_NAMES_GPS).
+    pd.DataFrame con columnas FEATURE_NAMES_GPS (o FEATURE_NAMES_GPS + FEATURE_NAMES_HR).
     """
     rows = []
     for _, row in df.iterrows():
@@ -213,8 +212,12 @@ def build_feature_matrix(df: pd.DataFrame, include_hr: bool = True) -> pd.DataFr
         else:
             rows.append(gps_feats)
 
-    expected_cols = FEATURE_NAMES if include_hr else FEATURE_NAMES_GPS
-    return pd.DataFrame(rows, index=df.index, columns=expected_cols)
+    expected_cols = FEATURE_NAMES_GPS + FEATURE_NAMES_HR if include_hr else FEATURE_NAMES_GPS
+    result = pd.DataFrame(rows, index=df.index)
+    # Asegurar que no hay leakage en la ruta normal
+    if not include_hr:
+        assert_no_hr_leakage(result)
+    return result[expected_cols]
 
 
 # ---------------------------------------------------------------------------

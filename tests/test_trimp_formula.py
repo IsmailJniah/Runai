@@ -14,7 +14,7 @@ import math
 import numpy as np
 import pytest
 
-from src.trimp import banister_trimp, _select_b, B_MALE, B_FEMALE
+from src.trimp import banister_trimp, banister_trimp_incremental, _select_b, B_MALE, B_FEMALE
 
 
 def _expected_trimp(duration_min, hr_mean, gender, hr_rest=60, hr_max=185):
@@ -83,9 +83,59 @@ class TestBansisterTrimp:
         Valor de referencia calculado manualmente:
         D=60, HR=155, rest=60, max=185, b=1.92
         ratio = (155-60)/(185-60) = 0.76
-        TRIMP = 60 * 0.76 * 0.64 * exp(1.92*0.76) ≈ 60 * 0.76 * 0.64 * 4.2316 ≈ 123.33
+        TRIMP = 60 * 0.76 * 0.64 * exp(1.92*0.76) ≈ 123.33
         """
         ratio = (155 - 60) / (185 - 60)
         expected = 60 * ratio * 0.64 * math.exp(1.92 * ratio)
         result = banister_trimp(60, 155, "male")
         assert abs(result - expected) < 0.01
+
+
+class TestBanisterTrimpIncremental:
+    """
+    Verifica que banister_trimp_incremental incluye el factor 0.64 de Banister
+    y que su resultado converge al de banister_trimp para FC constante.
+    """
+
+    def _make_constant_hr_session(self, duration_s: float, hr_bpm: float, n_samples: int = 100):
+        """Serie temporal con FC constante durante duration_s segundos."""
+        timestamps = np.linspace(0, duration_s, n_samples)
+        heart_rate = np.full(n_samples, hr_bpm)
+        return heart_rate, timestamps
+
+    def test_includes_064_factor(self):
+        """TRIMP incremental con FC constante debe ≈ versión agregada (ambas con 0.64)."""
+        duration_min = 30.0
+        hr = 140.0
+        hr_t, ts = self._make_constant_hr_session(duration_min * 60, hr, n_samples=300)
+        incremental = banister_trimp_incremental(hr_t, ts, "male")
+        aggregate = banister_trimp(duration_min, hr, "male")
+        # Convergencia dentro de 2% (diferencia por discretización)
+        assert abs(incremental - aggregate) / aggregate < 0.02, (
+            f"Incremental={incremental:.4f} vs Aggregate={aggregate:.4f}: "
+            "discrepancia > 2%, probablemente falta el factor 0.64"
+        )
+
+    def test_male_vs_female_coefficients(self):
+        """Misma sesión: TRIMP hombre > mujer por b mayor (1.92 > 1.67)."""
+        hr_t, ts = self._make_constant_hr_session(1800, 150, n_samples=200)
+        male = banister_trimp_incremental(hr_t, ts, "male")
+        female = banister_trimp_incremental(hr_t, ts, "female")
+        assert male > female
+
+    def test_higher_intensity_higher_trimp(self):
+        """FC más alta → TRIMP más alto."""
+        _, ts = self._make_constant_hr_session(1800, 120, n_samples=200)
+        low_hr = np.full(len(ts), 120.0)
+        high_hr = np.full(len(ts), 160.0)
+        assert banister_trimp_incremental(high_hr, ts, "male") > banister_trimp_incremental(low_hr, ts, "male")
+
+    def test_nan_on_insufficient_data(self):
+        """Con menos de 2 muestras válidas devuelve NaN."""
+        result = banister_trimp_incremental([140.0], [0.0], "male")
+        assert math.isnan(result)
+
+    def test_positive_result(self):
+        """El resultado debe ser positivo para inputs válidos."""
+        hr_t, ts = self._make_constant_hr_session(3600, 150, n_samples=100)
+        assert banister_trimp_incremental(hr_t, ts, "female") > 0

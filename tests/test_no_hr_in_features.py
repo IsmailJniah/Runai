@@ -15,6 +15,8 @@ import pytest
 
 from src.features import (
     FEATURE_NAMES,
+    FEATURE_NAMES_GPS,
+    build_feature_matrix,
     assert_no_hr_leakage,
     compute_features_from_series,
 )
@@ -90,3 +92,52 @@ class TestComputeFeaturesNoHR:
         result = compute_features_from_series(t, lat, lon, alt)
         bad = [k for k in result if any(term in k.lower() for term in _HR_TERMS)]
         assert not bad, f"FC encontrada en output de compute_features: {bad}"
+
+
+class TestBuildFeatureMatrixNoHRLeakage:
+    """Verifica que build_feature_matrix(include_hr=False) no filtra FC."""
+
+    def _make_df(self, n_sessions: int = 3, n_samples: int = 20):
+        """DataFrame sintético con listas de GPS y FC por sesión."""
+        rng = np.random.RandomState(42)
+        rows = []
+        for _ in range(n_sessions):
+            n = n_samples
+            t = np.linspace(0, 3600, n)
+            lat = np.linspace(40.0, 40.05, n)
+            lon = np.linspace(-3.0, -2.95, n)
+            alt = 600 + rng.randn(n) * 5
+            hr = 140 + rng.randn(n) * 10
+            rows.append({
+                "timestamp": list(t),
+                "latitude": list(lat),
+                "longitude": list(lon),
+                "altitude": list(alt),
+                "heart_rate": list(hr),
+            })
+        return pd.DataFrame(rows)
+
+    def test_default_excludes_hr(self):
+        """Por defecto (include_hr=False) el resultado no tiene columnas HR."""
+        df = self._make_df()
+        X = build_feature_matrix(df)  # include_hr=False por defecto
+        bad = [c for c in X.columns if any(t in c.lower() for t in _HR_TERMS)]
+        assert not bad, f"FC en X con include_hr=False: {bad}"
+
+    def test_default_has_9_columns(self):
+        """Por defecto devuelve exactamente 9 features externas."""
+        df = self._make_df()
+        X = build_feature_matrix(df)
+        assert X.shape[1] == 9, f"Esperadas 9 columnas, hay {X.shape[1]}: {list(X.columns)}"
+
+    def test_columns_match_gps_features(self):
+        """Las columnas deben coincidir exactamente con FEATURE_NAMES_GPS."""
+        df = self._make_df()
+        X = build_feature_matrix(df)
+        assert list(X.columns) == FEATURE_NAMES_GPS
+
+    def test_assert_no_hr_leakage_passes_on_default(self):
+        """assert_no_hr_leakage no debe lanzar con la salida por defecto."""
+        df = self._make_df()
+        X = build_feature_matrix(df)
+        assert_no_hr_leakage(X)  # no debe lanzar AssertionError
