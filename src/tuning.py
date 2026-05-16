@@ -1,9 +1,12 @@
 """
-tuning.py — Optimización de hiperparámetros con Optuna (100 trials por modelo).
+tuning.py — Optimización de hiperparámetros con Optuna (100 trials × 5 modelos).
 
-Usa la partición de validación (X_val) del split 70/15/15 para el objetivo de
-búsqueda, en lugar de GroupKFold interno, evitando leakage y respetando la
-estrategia de evaluación del TFM.
+Estrategia:
+  - Métrica objetivo: MAE en validación (holdout 15% por usuario).
+  - Dirección: minimize.
+  - Muestreador: TPESampler(seed=42).
+  - Early stopping (XGBoost, LightGBM): 50 rondas sin mejora en eval_set.
+  - LinearRegression: sin hiperparámetros; 1 trial simbólico.
 
 Persistencia:
   - Estudio Optuna: models/optuna_studies/<model_name>_study.pkl
@@ -33,6 +36,9 @@ N_TRIALS = 100
 STUDY_DIR = Path("models/optuna_studies")
 
 
+_EARLY_STOPPING_ROUNDS = 50  # rounds sin mejora para detener gradient boosting
+
+
 def _objective_factory(
     model_name: str,
     X_train: np.ndarray,
@@ -40,12 +46,37 @@ def _objective_factory(
     X_val: np.ndarray,
     y_val: np.ndarray,
 ):
-    """Devuelve la función objetivo de Optuna: entrena en train, evalúa en val."""
+    """Devuelve la función objetivo de Optuna: entrena en train, evalúa en val.
+
+    Para XGBoost y LightGBM activa early stopping sobre el conjunto de
+    validación (eval_set), lo que evita sobreajuste y acelera la búsqueda.
+    """
 
     def objective(trial: optuna.Trial) -> float:
         params = _suggest_params(trial, model_name)
         model = get_model(model_name, **params)
-        model.fit(X_train, y_train)
+
+        if model_name == "XGBoost":
+            model.fit(
+                X_train, y_train,
+                eval_set=[(X_val, y_val)],
+                verbose=False,
+                early_stopping_rounds=_EARLY_STOPPING_ROUNDS,
+            )
+        elif model_name == "LightGBM":
+            import lightgbm as lgb
+            callbacks = [
+                lgb.early_stopping(_EARLY_STOPPING_ROUNDS, verbose=False),
+                lgb.log_evaluation(-1),
+            ]
+            model.fit(
+                X_train, y_train,
+                eval_set=[(X_val, y_val)],
+                callbacks=callbacks,
+            )
+        else:
+            model.fit(X_train, y_train)
+
         preds = model.predict(X_val)
         return float(mean_absolute_error(y_val, preds))
 

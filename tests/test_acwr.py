@@ -4,7 +4,7 @@ test_acwr.py
 Verifica la cohorte apta y las zonas Gabbett (2016).
   - Usuarios con span < 28 días quedan excluidos.
   - Las zonas ACWR se asignan correctamente.
-  - ACWR = acute_7d / chronic_28d.
+  - ACWR = media_TRIMP(7d) / media_TRIMP(28d) — converge a 1.0 en carga constante.
 """
 
 import numpy as np
@@ -75,33 +75,44 @@ class TestFilterEligibleUsers:
 
 
 class TestComputeACWRPerUser:
-    def test_acwr_constant_load(self):
-        """Con carga constante, ACWR tiende a 1 una vez estabilizado."""
+    def test_acwr_constant_load_converges_to_one(self):
+        """Con carga diaria constante, ACWR debe converger a ~1.0 tras 28 días.
+
+        Implementación canónica Gabbett (2016): medias rodantes.
+        media(7d) / media(28d) = TRIMP_cte / TRIMP_cte = 1.0 en estabilidad.
+        """
         df_user = _make_sessions("u1", n_days=60, trimp_val=100.0)
         result = compute_acwr_per_user(df_user)
-        # Después de 28 días, ACWR ~ 7d_sum / 28d_sum = 7/28 si carga es diaria
-        # Pero se acumula suma de 7 / suma de 28 = 700/2800 = 0.25 NO...
-        # Corrección: acute = 7*100=700, chronic = 28*100=2800 → acwr = 0.25
-        # Esto es correcto matemáticamente con sumas (no medias)
-        # Con la implementación rolling sum:
+        # Tras 28 días las dos ventanas están completamente rellenas
         stable_acwr = result.loc[result.index >= 27, "acwr"].dropna()
         assert len(stable_acwr) > 0
-        # ACWR estabilizado debe ser constante (7/28 = 0.25)
-        assert abs(stable_acwr.iloc[-1] - 7 / 28) < 0.01
+        assert abs(stable_acwr.iloc[-1] - 1.0) < 0.05, (
+            f"ACWR estabilizado={stable_acwr.iloc[-1]:.4f}, esperado ≈ 1.0. "
+            "Verificar que la implementación usa medias (no sumas)."
+        )
 
     def test_acwr_columns_present(self):
         df_user = _make_sessions("u2", n_days=35)
         result = compute_acwr_per_user(df_user)
-        required = {"date", "trimp_acute", "trimp_chronic", "acwr", "zone"}
+        required = {"date", "trimp_acute_mean", "trimp_chronic_mean", "acwr", "zone"}
         assert required.issubset(set(result.columns))
 
-    def test_no_session_days_are_zero(self):
-        """Días sin sesión deben tener TRIMP=0 en las sumas."""
+    def test_no_session_days_have_valid_acute(self):
+        """Días sin sesión no deben producir NaN en trimp_acute_mean."""
         df_user = _make_sessions("u3", n_days=40)
-        # Eliminar algunos días para crear huecos
         df_user = df_user[df_user["date"].dt.day != 15]
         result = compute_acwr_per_user(df_user)
-        assert result["trimp_acute"].notna().all()
+        assert result["trimp_acute_mean"].notna().all()
+
+    def test_acwr_zone_optima_at_steady_state(self):
+        """Con carga constante ≥ 28 días, la zona debe ser 'optima' (ACWR ≈ 1.0)."""
+        df_user = _make_sessions("u4", n_days=60, trimp_val=80.0)
+        result = compute_acwr_per_user(df_user)
+        # Últimos días (ventanas completas)
+        last_zones = result.tail(10)["zone"]
+        assert (last_zones == "optima").all(), (
+            f"Zona esperada 'optima', encontrada: {last_zones.unique()}"
+        )
 
 
 class TestZoneDistribution:

@@ -2,10 +2,10 @@
 trimp.py — Cálculo del TRIMP de Banister (1991) diferenciado por sexo.
 
 Fórmula incremental (preferida, más precisa):
-    TRIMP = Σ_t ( Δt · HRR_t · e^(b · HRR_t) )
+    TRIMP = Σ_t ( Δt · HRR_t · 0.64 · e^(b · HRR_t) )
 
-Fórmula de sesión agregada (legacy, cuando solo hay HR media):
-    TRIMP = D · HRR_medio · e^(b · HRR_medio)
+Fórmula de sesión agregada (equivalente cuando solo hay HR media):
+    TRIMP = D · HRR_medio · 0.64 · e^(b · HRR_medio)
 
 Donde:
     Δt          = fragmento de tiempo en minutos
@@ -59,7 +59,7 @@ def banister_trimp_incremental(
 
     Returns
     -------
-    float — TRIMP de la sesión. NaN si datos insuficientes.
+    float — TRIMP de la sesión (con factor 0.64 de Banister). NaN si datos insuficientes.
     """
     hr = np.asarray(heart_rate, dtype=float)
     ts = np.asarray(timestamps, dtype=float)
@@ -94,8 +94,8 @@ def banister_trimp_incremental(
 
     b = _select_b(gender)
 
-    # TRIMP = Σ Δt · HRR · e^(b·HRR)
-    contributions = dt_min * hrr * np.exp(b * hrr)
+    # TRIMP = Σ Δt · HRR · 0.64 · e^(b·HRR)  — Banister (1991)
+    contributions = dt_min * hrr * 0.64 * np.exp(b * hrr)
     valid_contribs = contributions[~np.isnan(contributions)]
 
     return float(np.sum(valid_contribs)) if len(valid_contribs) > 0 else np.nan

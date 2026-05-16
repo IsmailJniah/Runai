@@ -1,15 +1,16 @@
 """
 acwr.py — Cálculo de ACWR (Acute:Chronic Workload Ratio) según Gabbett (2016).
 
-Definición:
-  ACWR = carga_aguda_7d / carga_crónica_28d
+Definición canónica:
+  ACWR = media_TRIMP(7d) / media_TRIMP(28d)
 
-  donde carga = suma de TRIMP en la ventana temporal correspondiente.
+  Las medias diarias se calculan sobre el TRIMP acumulado por día.
+  En carga constante, ACWR converge a 1.0 (estabilidad de carga).
 
 Zonas de riesgo (Gabbett, 2016):
-  < 0.80   → carga insuficiente / descanso
+  < 0.80   → carga insuficiente / descanso excesivo
   0.80–1.30 → zona óptima ("sweet spot")
-  1.30–1.50 → zona de precaución
+  1.30–1.50 → zona de precaución (riesgo elevado)
   > 1.50   → zona de alto riesgo
 
 Cohorte elegible: usuarios con span temporal ≥ 28 días de datos.
@@ -104,13 +105,17 @@ def compute_acwr_per_user(
 
     Returns
     -------
-    pd.DataFrame diario con columnas: date, trimp_acute, trimp_chronic, acwr, zone.
+    pd.DataFrame diario con columnas: date, trimp_acute_mean, trimp_chronic_mean, acwr, zone.
+
+    Nota: trimp_acute_mean = media TRIMP diaria en los últimos 7 días.
+          trimp_chronic_mean = media TRIMP diaria en los últimos 28 días.
+          ACWR = trimp_acute_mean / trimp_chronic_mean → ~1.0 en carga constante.
     """
     df_user = df_user.copy()
     df_user[date_col] = pd.to_datetime(df_user[date_col])
     df_user = df_user.sort_values(date_col)
 
-    # Resamplear a suma diaria de TRIMP
+    # Suma diaria de TRIMP (días sin sesión = 0)
     daily = (
         df_user.set_index(date_col)[trimp_col]
         .resample("D")
@@ -118,20 +123,21 @@ def compute_acwr_per_user(
         .fillna(0)
     )
 
-    # Rellenar el rango completo de fechas con 0 (días sin sesión)
+    # Rellenar rango completo de fechas con 0
     full_idx = pd.date_range(daily.index.min(), daily.index.max(), freq="D")
     daily = daily.reindex(full_idx, fill_value=0)
 
-    # Ventanas deslizantes
-    acute = daily.rolling(window=acute_days, min_periods=1).sum()
-    chronic = daily.rolling(window=chronic_days, min_periods=1).sum()
+    # Medias rodantes — implementación canónica de Gabbett (2016)
+    # min_periods=1 para aguda (pocos días al inicio), 7 para crónica
+    acute = daily.rolling(window=acute_days, min_periods=1).mean()
+    chronic = daily.rolling(window=chronic_days, min_periods=7).mean()
 
     acwr = acute / chronic.replace(0, np.nan)
 
     result = pd.DataFrame({
         "date": daily.index,
-        "trimp_acute": acute.values,
-        "trimp_chronic": chronic.values,
+        "trimp_acute_mean": acute.values,
+        "trimp_chronic_mean": chronic.values,
         "acwr": acwr.values,
     })
     result["zone"] = result["acwr"].apply(_assign_zone)
