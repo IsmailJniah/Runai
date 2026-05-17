@@ -177,7 +177,7 @@ def tune_model(
     objective = _objective_factory(model_name, X_tr, y_tr, X_v, y_v)
 
     logger.info("Optuna: optimizando %s (%d trials)...", model_name, n_trials)
-    study.optimize(objective, n_trials=n_trials, show_progress_bar=True)
+    study.optimize(objective, n_trials=n_trials, show_progress_bar=True, n_jobs=4)
 
     result = {
         "best_params": study.best_params,
