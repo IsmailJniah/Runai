@@ -153,15 +153,7 @@ def auto_detect_and_load(data_dir: str | Path = "data/raw",
             "Consulta README.md → Sección 'Dataset' para instrucciones de descarga."
         )
 
-    # Guardar caché (solo si carga completa y pyarrow disponible)
-    if use_cache and max_rows is None:
-        try:
-            # Parquet no soporta columnas con listas de tipos mixtos; guardar solo escalares
-            scalar_cols = [c for c in df.columns if not df[c].apply(lambda x: isinstance(x, list)).any()]
-            df[scalar_cols].to_parquet(cache_path, index=False)
-            logger.info("Caché Parquet guardado en %s (columnas: %s)", cache_path, scalar_cols)
-            print(f"Caché guardado en {cache_path.name} — próximas cargas serán instantáneas.")
-        except Exception as exc:
-            logger.warning("No se pudo guardar caché Parquet: %s", exc)
+    # No cachear: FitRec tiene columnas de lista (heart_rate, timestamp, etc.)
+    # que parquet no puede almacenar fielmente; leer el caché rompería notebook 02.
 
     return df
