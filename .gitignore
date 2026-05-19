@@ -22,6 +22,7 @@ data/processed/
 # Modelos pesados (Opcional, pero recomendado no subir los .pkl grandes)
 outputs/models/*.pkl
 models/*.pkl
+!models/best_model.pkl
 
 # Logs de GCP
 .gcp/
