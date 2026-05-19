@@ -890,10 +890,6 @@ with tab1:
             "⏱️ Duración (minutos)", min_value=5.0, max_value=600.0,
             value=45.0, step=1.0
         )
-        distance_km = st.number_input(
-            "📏 Distancia (km)", min_value=0.5, max_value=200.0,
-            value=8.0, step=0.1
-        )
         elevation_gain = st.number_input(
             "⛰️ Desnivel acumulado (m)", min_value=0.0, max_value=5000.0,
             value=50.0, step=10.0
@@ -915,22 +911,27 @@ with tab1:
             value=200.0, step=50.0
         )
 
-    pace_mean  = (duration_min / distance_km) if distance_km > 0 else 6.0
-    speed_max  = speed_mean * 1.35
-    grade_fact = (elevation_gain / distance_km) if distance_km > 0 else 0.0
+    # Valores derivados — siempre consistentes entre sí
+    distance_km = (duration_min / 60.0) * speed_mean      # distancia física real
+    pace_mean   = (60.0 / speed_mean) if speed_mean > 0 else 6.0
+    speed_max   = speed_mean * 1.35
+    grade_fact  = (elevation_gain / distance_km) if distance_km > 0 else 0.0
 
     with st.expander("Valores calculados automáticamente"):
-        dc1, dc2, dc3 = st.columns(3)
+        dc1, dc2, dc3, dc4 = st.columns(4)
         with dc1:
-            kpi_card("Ritmo medio", f"{pace_mean:.2f}", "min/km")
+            kpi_card("Distancia", f"{distance_km:.2f}", "km")
         with dc2:
-            kpi_card("Vel. máx estimada", f"{speed_max:.2f}", "km/h")
+            kpi_card("Ritmo medio", f"{pace_mean:.2f}", "min/km")
         with dc3:
+            kpi_card("Vel. máx est.", f"{speed_max:.2f}", "km/h")
+        with dc4:
             kpi_card("Factor pendiente", f"{grade_fact:.2f}", "m/km")
 
     st.markdown("<div style='margin-top:1rem'></div>", unsafe_allow_html=True)
     predict_btn = st.button("Calcular TRIMP", type="primary", use_container_width=True)
 
+    # --- Ejecutar predicción y guardar en session_state ---
     if predict_btn:
         X = build_feature_row(
             duration_min, distance_km, speed_mean, speed_std,
@@ -939,9 +940,6 @@ with tab1:
         trimp_pred = float(model.predict(X)[0])
         trimp_pred = max(0.0, trimp_pred)
 
-        st.markdown("<div style='margin-top:1.5rem'></div>", unsafe_allow_html=True)
-
-        # Determine zone
         if trimp_pred < 80:
             bar_color  = "#22c55e"
             zone_label = "Entrenamiento base"
@@ -952,7 +950,27 @@ with tab1:
             bar_color  = "#ef4444"
             zone_label = "Alta intensidad"
 
-        pct = min(trimp_pred / 500, 1.0) * 100
+        st.session_state["last_trimp"]     = trimp_pred
+        st.session_state["last_bar_color"] = bar_color
+        st.session_state["last_zone"]      = zone_label
+        st.session_state["last_session"]   = {
+            "duration_min":   duration_min,
+            "distance_km":    distance_km,
+            "speed_mean":     speed_mean,
+            "elevation_gain": elevation_gain,
+            "gender":         gender,
+            "trimp_pred":     trimp_pred,
+        }
+
+    # --- Renderizar resultados siempre que haya predicción guardada ---
+    if "last_trimp" in st.session_state:
+        trimp_pred = st.session_state["last_trimp"]
+        bar_color  = st.session_state.get("last_bar_color", "#22c55e")
+        zone_label = st.session_state.get("last_zone", "")
+        sess       = st.session_state.get("last_session", {})
+        pct        = min(trimp_pred / 500, 1.0) * 100
+
+        st.markdown("<div style='margin-top:1.5rem'></div>", unsafe_allow_html=True)
 
         # TRIMP result card
         st.markdown(f"""
@@ -989,24 +1007,15 @@ with tab1:
         with k1:
             kpi_card("TRIMP", f"{trimp_pred:.1f}", "u.a.")
         with k2:
-            kpi_card("Duración", f"{duration_min:.0f}", "min")
+            kpi_card("Duración", f"{sess.get('duration_min', duration_min):.0f}", "min")
         with k3:
-            kpi_card("Distancia", f"{distance_km:.1f}", "km")
+            kpi_card("Distancia", f"{sess.get('distance_km', distance_km):.1f}", "km")
         with k4:
-            kpi_card("Desnivel", f"{elevation_gain:.0f}", "m")
+            kpi_card("Desnivel", f"{sess.get('elevation_gain', elevation_gain):.0f}", "m")
 
-        st.session_state["last_trimp"]   = trimp_pred
-        st.session_state["last_session"] = {
-            "duration_min":   duration_min,
-            "distance_km":    distance_km,
-            "speed_mean":     speed_mean,
-            "elevation_gain": elevation_gain,
-            "gender":         gender,
-            "trimp_pred":     trimp_pred,
-        }
-
-        st.markdown("<div style='margin-top:1rem'></div>", unsafe_allow_html=True)
-        st.success("¡Predicción completada! Pasa a la pestaña **Feedback** para valorar el resultado.")
+        if predict_btn:
+            st.markdown("<div style='margin-top:1rem'></div>", unsafe_allow_html=True)
+            st.success("¡Predicción completada! Pasa a la pestaña **Feedback** para valorar el resultado.")
 
 
 # ===========================================================================
